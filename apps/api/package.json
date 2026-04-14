@@ -8,7 +8,7 @@
     "lint": "eslint src --ext .ts"
   },
   "prisma": {
-    "schema": "../../prisma/schema.prisma"
+    "schema": "./prisma/schema.prisma"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

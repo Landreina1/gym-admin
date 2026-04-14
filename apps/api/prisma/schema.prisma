@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ──────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String
+  password  String
+  role      Role       @default(ADMIN)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  auditLogs AuditLog[]
+
+  @@map("admin_users")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+}
+
+// ─── Plans ─────────────────────────────────────────────────────────────
+
+model Plan {
+  id           String    @id @default(cuid())
+  name         String
+  description  String?
+  price        Decimal   @db.Decimal(10, 2)
+  durationDays Int       @default(30)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  students     Student[]
+
+  @@map("plans")
+}
+
+// ─── Students ──────────────────────────────────────────────────────────
+
+model Student {
+  id             String         @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?        @unique
+  phone          String?
+  birthDate      DateTime?
+  joinDate       DateTime       @default(now())
+  billingDay     Int            // 1-31: día del mes en que se cobra
+  height         Decimal?       @db.Decimal(5, 2) // cm
+  initialWeight  Decimal?       @db.Decimal(5, 2) // kg
+  goal           StudentGoal
+  monthlyGoalKg  Decimal?       @db.Decimal(5, 2) // meta mensual en kg
+  status         StudentStatus  @default(ACTIVE)
+  notes          String?
+
+  // Salud
+  allergies      String?
+  isCeliac       Boolean        @default(false)
+
+  // Medidas corporales (cm)
+  waist          Decimal?       @db.Decimal(5, 2)
+  abdomen        Decimal?       @db.Decimal(5, 2)
+  arms           Decimal?       @db.Decimal(5, 2)
+  legs           Decimal?       @db.Decimal(5, 2)
+  glutes         Decimal?       @db.Decimal(5, 2)
+
+  // Seguimiento de estatura en el tiempo (ej: niños)
+  trackHeight    Boolean        @default(false)
+
+  planId         String
+  plan           Plan           @relation(fields: [planId], references: [id])
+  weightRecords  WeightRecord[]
+  bodyRecords    BodyRecord[]
+  payments       Payment[]
+  notifications  Notification[]
+  studentDiet    StudentDiet?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("students")
+}
+
+
+enum StudentGoal {
+  LOSE_WEIGHT
+  GAIN_WEIGHT
+  MAINTAIN
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ─── Weight Records ────────────────────────────────────────────────────
+
+model WeightRecord {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  weight     Decimal  @db.Decimal(5, 2) // kg
+  notes      String?
+  recordedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@map("weight_records")
+}
+
+// ─── Body Records (medidas unificadas por sesión) ──────────────────────
+
+model BodyRecord {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recordedAt DateTime @default(now())
+  weight     Decimal? @db.Decimal(5, 2) // kg
+  height     Decimal? @db.Decimal(5, 2) // cm (si trackHeight)
+  waist      Decimal? @db.Decimal(5, 2) // cm
+  abdomen    Decimal? @db.Decimal(5, 2) // cm
+  arms       Decimal? @db.Decimal(5, 2) // cm
+  legs       Decimal? @db.Decimal(5, 2) // cm
+  glutes     Decimal? @db.Decimal(5, 2) // cm
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@map("body_records")
+}
+
+// ─── Payments ──────────────────────────────────────────────────────────
+
+model Payment {
+  id            String        @id @default(cuid())
+  studentId     String
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount        Decimal       @db.Decimal(10, 2)
+  paidAt        DateTime
+  periodStart   DateTime
+  periodEnd     DateTime
+  status        PaymentStatus @default(PAID)
+  paymentMethod String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PAID
+  OVERDUE
+  PENDING
+}
+
+// ─── Notifications ─────────────────────────────────────────────────────
+
+model Notification {
+  id          String             @id @default(cuid())
+  studentId   String?
+  student     Student?           @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  type        NotificationType
+  title       String
+  message     String
+  status      NotificationStatus @default(PENDING)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  PAYMENT_DUE
+  PAYMENT_OVERDUE
+  HOLIDAY
+  ADMIN_NOTICE
+}
+
+enum NotificationStatus {
+  PENDING
+  SCHEDULED
+  SENT
+  CANCELLED
+}
+
+// ─── Non Working Days ──────────────────────────────────────────────────
+
+model NonWorkingDay {
+  id          String   @id @default(cuid())
+  date        DateTime
+  description String
+  createdAt   DateTime @default(now())
+
+  @@map("non_working_days")
+}
+
+// ─── Diets ─────────────────────────────────────────────────────────────
+
+model DietTemplate {
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  meals        Json          // [{ name, time, foods, calories, notes }]
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  studentDiets StudentDiet[]
+
+  @@map("diet_templates")
+}
+
+model StudentDiet {
+  id         String        @id @default(cuid())
+  studentId  String        @unique
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  templateId String?
+  template   DietTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  name       String
+  meals      Json          // personalized meals
+  notes      String?
+  assignedAt DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@map("student_diets")
+}
+
+// ─── Audit Log ─────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String    @id @default(cuid())
+  adminId   String
+  admin     AdminUser @relation(fields: [adminId], references: [id])
+  action    String    // CREATE | UPDATE | DELETE
+  entity    String    // Student | Payment | WeightRecord...
+  entityId  String
+  oldValues Json?
+  newValues Json?
+  createdAt DateTime  @default(now())
+
+  @@map("audit_logs")
+}
