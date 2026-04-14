@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn add:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3001)",
+      "Bash(taskkill /PID 16608 /F)",
+      "Bash(cmd /c \"taskkill /PID 16608 /F\")",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\")",
+      "Bash(cmd /c \"tasklist /FI \"\"PID eq 16608\"\"\")",
+      "Bash(powershell -Command \"Stop-Process -Id 16608 -Force -ErrorAction SilentlyContinue; Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue\")",
+      "Bash(powershell -Command \"Get-Process -Id 16608 | Select-Object Name, Id\")",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 3000 | Select-Object -ExpandProperty OwningProcess\")",
+      "Bash(powershell -Command \"Stop-Process -Id 1300 -Force\")",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue\")",
+      "Bash(ls -la \"c:/Users/Leoneidys Gonzàlez/OneDrive/Desktop/APP_GYM/apps/admin/src/app/\\(dashboard\\)/payments\")",
+      "Bash(ls -la \"c:/Users/Leoneidys Gonzàlez/OneDrive/Desktop/APP_GYM/apps/admin/src/app/\\(dashboard\\)/notifications\")",
+      "Bash(curl -s http://localhost:3001/api/v1/plans)",
+      "Bash(python3 -c \"import sys,json; plans=json.load\\(sys.stdin\\); [print\\(p[''''id''''], p[''''name'''']\\) for p in plans]\")",
+      "Bash(curl -s -X PUT http://localhost:3001/api/v1/students/cmn52t7xi000379iu7akybgn7 -H \"Content-Type: application/json; charset=utf-8\" --data-binary '{\"\"\"\"firstName\"\"\"\":\"\"\"\"Sof\\\\u00eda\"\"\"\",\"\"\"\"lastName\"\"\"\":\"\"\"\"Ram\\\\u00edrez\"\"\"\"}')",
+      "Bash(curl -s -X PUT http://localhost:3001/api/v1/students/cmn52t844000579iuo3d5v5tc -H \"Content-Type: application/json; charset=utf-8\" --data-binary '{\"\"\"\"firstName\"\"\"\":\"\"\"\"Tom\\\\u00e1s\"\"\"\",\"\"\"\"lastName\"\"\"\":\"\"\"\"Fern\\\\u00e1ndez\"\"\"\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/v1/students -H \"Content-Type: application/json\" --data-binary '{\"\"\"\"firstName\"\"\"\":\"\"\"\"Roberto\"\"\"\",\"\"\"\"lastName\"\"\"\":\"\"\"\"Silva\"\"\"\",\"\"\"\"email\"\"\"\":\"\"\"\"roberto@test.com\"\"\"\",\"\"\"\"billingDay\"\"\"\":26,\"\"\"\"planId\"\"\"\":\"\"\"\"plan-basic\"\"\"\",\"\"\"\"initialWeight\"\"\"\":78,\"\"\"\"height\"\"\"\":175,\"\"\"\"goal\"\"\"\":\"\"\"\"MAINTAIN\"\"\"\"}')",
+      "Bash(curl -s -X POST http://localhost:3001/api/v1/payments -H \"Content-Type: application/json\" --data-binary '{\"\"\"\"studentId\"\"\"\":\"\"\"\"cmn6e5wqi0002bme6y8lpoyuf\"\"\"\",\"\"\"\"amount\"\"\"\":3000,\"\"\"\"paidAt\"\"\"\":\"\"\"\"2026-02-26\"\"\"\",\"\"\"\"periodStart\"\"\"\":\"\"\"\"2026-02-26\"\"\"\",\"\"\"\"periodEnd\"\"\"\":\"\"\"\"2026-03-26\"\"\"\"}')",
+      "Bash(find '/c/Users/Leoneidys Gonzàlez/OneDrive/Desktop/APP_GYM/apps' -type f \\\\\\(-name *auth* -o -name *login* -o -name *guard* -o -name *middleware* \\\\\\))",
+      "Bash(find '/c/Users/Leoneidys Gonzàlez/OneDrive/Desktop/APP_GYM' -type f \\\\\\(-name .env* -o -name *.env \\\\\\))",
+      "Bash(find '/c/Users/Leoneidys Gonzàlez/OneDrive/Desktop/APP_GYM/apps/api/src' -type f -name *.ts)",
+      "Bash(node -e \":*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(powershell -Command \"\\(Get-Content ''c:\\\\Users\\\\Leoneidys Gonzàlez\\\\OneDrive\\\\Desktop\\\\APP_GYM\\\\apps\\\\admin\\\\src\\\\components\\\\students\\\\StudentTable.tsx''\\) -replace ''type=\"\"date\"\"'', ''type=\"\"date\"\" lang=\"\"es\"\"'' | Set-Content ''c:\\\\Users\\\\Leoneidys Gonzàlez\\\\OneDrive\\\\Desktop\\\\APP_GYM\\\\apps\\\\admin\\\\src\\\\components\\\\students\\\\StudentTable.tsx''\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Leoneidys Gonzàlez\\OneDrive\\Desktop\\APP_GYM\\apps\\admin\\src\\app\\(dashboard)\\dietas\\[id]",
+      "c:\\Users\\Leoneidys Gonzàlez\\OneDrive\\Desktop\\APP_GYM\\apps\\admin\\src\\app\\(dashboard)\\students\\[id]"
+    ]
+  }
+}

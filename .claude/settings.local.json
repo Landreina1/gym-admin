@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn --version)",
+      "Bash(npm --version)",
+      "Bash(docker --version)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(npm install:*)",
+      "Bash(docker info:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(yarn install:*)",
+      "Bash(docker exec:*)",
+      "Bash(yarn db:generate)",
+      "Bash(yarn db:migrate)",
+      "Bash(npx prisma:*)",
+      "Bash(npx ts-node:*)"
+    ]
+  }
+}

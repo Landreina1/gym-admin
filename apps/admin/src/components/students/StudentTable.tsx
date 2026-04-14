@@ -1,0 +1,355 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  ArrowUp, ArrowDown, Minus, MoreVertical,
+  Eye, Pencil, Scale, CreditCard, ChevronRight,
+} from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Student } from '@/types';
+import { formatDate, cn } from '@/lib/utils';
+import { Modal } from '@/components/ui/Modal';
+import { Toast } from '@/components/ui/Toast';
+import { weightService } from '@/services/weight.service';
+import { paymentsService } from '@/services/payments.service';
+
+const inputClass =
+  'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
+
+/* ─── Weight delta ────────────────────────────────────────── */
+function WeightBadge({ diff, goal }: { diff: number; goal: string }) {
+  const isDown = diff < 0;
+  const isUp = diff > 0;
+  const isGood = (goal === 'LOSE_WEIGHT' && isDown) || (goal === 'GAIN_WEIGHT' && isUp) || (goal === 'MAINTAIN' && !isDown && !isUp);
+  const isBad  = (goal === 'LOSE_WEIGHT' && isUp)   || (goal === 'GAIN_WEIGHT' && isDown);
+  return (
+    <span className={cn('flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full',
+      isGood ? 'bg-green-50 text-green-600' : isBad ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400',
+    )}>
+      {isDown ? <ArrowDown className="w-3 h-3" /> : isUp ? <ArrowUp className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+      {Math.abs(diff)}
+    </span>
+  );
+}
+
+function WeightCell({ records, goal }: { records?: { weight: number; recordedAt: string }[]; goal: string }) {
+  if (!records || records.length === 0) return <span className="text-gray-300 text-sm">—</span>;
+  const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+  const current = sorted[sorted.length - 1];
+  const prev    = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
+  const diff    = prev ? +(current.weight - prev.weight).toFixed(1) : null;
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-sm font-semibold text-gray-800">{current.weight} kg</span>
+      {diff !== null && <WeightBadge diff={diff} goal={goal} />}
+    </div>
+  );
+}
+
+/* ─── Desktop action dropdown ─────────────────────────────── */
+function ActionDropdown({ student, onWeight, onPayment }: { student: Student; onWeight: () => void; onPayment: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((o) => !o)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-8 z-20 w-44 bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm">
+          <Link href={`/students/${student.id}`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
+            <Eye className="w-4 h-4 text-gray-400" /> Ver detalle
+          </Link>
+          <Link href={`/students/${student.id}/edit`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
+            <Pencil className="w-4 h-4 text-gray-400" /> Editar alumno
+          </Link>
+          <div className="border-t border-gray-100 my-1" />
+          <button onClick={() => { setOpen(false); onWeight(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
+            <Scale className="w-4 h-4 text-gray-400" /> Registrar peso
+          </button>
+          <button onClick={() => { setOpen(false); onPayment(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-brand-600 hover:bg-brand-50 font-medium">
+            <CreditCard className="w-4 h-4" /> Registrar pago
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Mobile student card ─────────────────────────────────── */
+function StudentCard({ student, onWeight, onPayment }: { student: Student; onWeight: () => void; onPayment: () => void }) {
+  const records = student.weightRecords ?? [];
+  const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+  const initials = `${student.firstName[0]}${student.lastName[0]}`.toUpperCase();
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3 shadow-sm">
+      {/* Top row */}
+      <div className="flex items-start justify-between gap-3">
+        <Link href={`/students/${student.id}`} className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">{student.firstName} {student.lastName}</p>
+            <p className="text-xs text-gray-400 truncate">{student.email || student.plan?.name || '—'}</p>
+          </div>
+        </Link>
+        <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
+      </div>
+
+      {/* Badges row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Plan */}
+        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+          {student.plan?.name ?? '—'}
+        </span>
+        {/* Estado */}
+        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+          student.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500',
+        )}>
+          <span className={cn('w-1.5 h-1.5 rounded-full', student.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-gray-400')} />
+          {student.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+        </span>
+        {/* Pago */}
+        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+          student.isOverdue ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700',
+        )}>
+          <span className={cn('w-1.5 h-1.5 rounded-full', student.isOverdue ? 'bg-red-500' : 'bg-emerald-500')} />
+          {student.isOverdue ? 'En mora' : 'Al día'}
+        </span>
+      </div>
+
+      {/* Weight + due date row */}
+      <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-50 pt-2.5">
+        <div className="flex items-center gap-1">
+          <Scale className="w-3.5 h-3.5 text-gray-400" />
+          <WeightCell records={sorted} goal={student.goal} />
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-gray-400">Vence:</span>
+          <span className="font-medium text-gray-700">{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span>
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-2 pt-0.5">
+        <button
+          onClick={onWeight}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+        >
+          <Scale className="w-3.5 h-3.5" /> Peso
+        </button>
+        <button
+          onClick={onPayment}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-brand-600 text-white rounded-xl text-xs font-medium hover:bg-brand-700 active:bg-brand-800 transition-colors"
+        >
+          <CreditCard className="w-3.5 h-3.5" /> Pago
+        </button>
+        <Link
+          href={`/students/${student.id}`}
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+        >
+          <Eye className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main ────────────────────────────────────────────────── */
+export function StudentTable({ students, isLoading }: { students: Student[]; isLoading: boolean }) {
+  const queryClient = useQueryClient();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [weightStudent, setWeightStudent] = useState<Student | null>(null);
+  const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [weightForm, setWeightForm] = useState({ weight: '', recordedAt: today, notes: '' });
+  const [paymentForm, setPaymentForm] = useState({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' });
+
+  const weightMutation = useMutation({
+    mutationFn: () => weightService.create({ studentId: weightStudent!.id, weight: Number(weightForm.weight), recordedAt: weightForm.recordedAt, notes: weightForm.notes || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      setWeightStudent(null);
+      setWeightForm({ weight: '', recordedAt: today, notes: '' });
+      setToast({ message: 'Peso registrado correctamente', type: 'success' });
+    },
+    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
+  });
+
+  const paymentMutation = useMutation({
+    mutationFn: () => paymentsService.create({ studentId: paymentStudent!.id, amount: Number(paymentForm.amount), paidAt: paymentForm.paidAt, periodStart: paymentForm.periodStart, periodEnd: paymentForm.periodEnd, notes: paymentForm.notes || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      setPaymentStudent(null);
+      setPaymentForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' });
+      setToast({ message: 'Pago registrado correctamente', type: 'success' });
+    },
+    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
+  });
+
+  function openWeight(s: Student) { setWeightForm({ weight: '', recordedAt: today, notes: '' }); setWeightStudent(s); }
+  function openPayment(s: Student) { setPaymentForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' }); setPaymentStudent(s); }
+
+  if (isLoading) {
+    return (
+      <>
+        {/* Mobile skeleton */}
+        <div className="md:hidden space-y-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-40 bg-gray-100 rounded-2xl animate-pulse" />)}
+        </div>
+        {/* Desktop skeleton */}
+        <div className="hidden md:block bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="h-12 bg-gray-50 border-b border-gray-100" />
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex gap-4 px-5 py-4 border-b border-gray-50 animate-pulse">
+              <div className="h-4 bg-gray-100 rounded w-40" />
+              <div className="h-4 bg-gray-100 rounded w-24" />
+              <div className="h-4 bg-gray-100 rounded w-16" />
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  if (students.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+        <p className="text-gray-400 text-sm">No se encontraron alumnos</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* ── Weight modal ── */}
+      <Modal isOpen={!!weightStudent} onClose={() => setWeightStudent(null)} title={`Registrar peso — ${weightStudent?.firstName} ${weightStudent?.lastName}`}>
+        <form onSubmit={(e) => { e.preventDefault(); weightMutation.mutate(); }} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Peso (kg) *</label>
+            <input type="number" step="0.1" required autoFocus value={weightForm.weight} onChange={(e) => setWeightForm((f) => ({ ...f, weight: e.target.value }))} className={inputClass} placeholder="Ej: 72.5" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha *</label>
+            <input type="date" lang="es" required value={weightForm.recordedAt} onChange={(e) => setWeightForm((f) => ({ ...f, recordedAt: e.target.value }))} className={inputClass} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Notas</label>
+            <input type="text" value={weightForm.notes} onChange={(e) => setWeightForm((f) => ({ ...f, notes: e.target.value }))} className={inputClass} placeholder="Opcional" />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setWeightStudent(null)} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+            <button type="submit" disabled={weightMutation.isPending} className="flex-1 px-4 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50">{weightMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Payment modal ── */}
+      <Modal isOpen={!!paymentStudent} onClose={() => setPaymentStudent(null)} title={`Registrar pago — ${paymentStudent?.firstName} ${paymentStudent?.lastName}`}>
+        <form onSubmit={(e) => { e.preventDefault(); paymentMutation.mutate(); }} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Monto *</label>
+            <input type="number" step="0.01" required autoFocus value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))} className={inputClass} placeholder="Ej: 15000" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha de pago *</label>
+            <input type="date" lang="es" required value={paymentForm.paidAt} onChange={(e) => setPaymentForm((f) => ({ ...f, paidAt: e.target.value }))} className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Desde *</label>
+              <input type="date" lang="es" required value={paymentForm.periodStart} onChange={(e) => setPaymentForm((f) => ({ ...f, periodStart: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Hasta *</label>
+              <input type="date" lang="es" required value={paymentForm.periodEnd} onChange={(e) => setPaymentForm((f) => ({ ...f, periodEnd: e.target.value }))} className={inputClass} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Notas</label>
+            <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))} className={inputClass} placeholder="Opcional" />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setPaymentStudent(null)} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+            <button type="submit" disabled={paymentMutation.isPending} className="flex-1 px-4 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50">{paymentMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Mobile: cards ── */}
+      <div className="md:hidden space-y-3">
+        {students.map((s) => (
+          <StudentCard
+            key={s.id}
+            student={s}
+            onWeight={() => openWeight(s)}
+            onPayment={() => openPayment(s)}
+          />
+        ))}
+      </div>
+
+      {/* ── Desktop: table ── */}
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px]">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-100">
+                {['Alumno', 'Plan', 'Peso inicial', 'Peso anterior', 'Peso actual', 'Estado', 'Pago', 'Vencimiento', ''].map((h) => (
+                  <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {students.map((student) => {
+                const records = student.weightRecords ?? [];
+                const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
+                const prev = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
+                return (
+                  <tr key={student.id} className="group hover:bg-gray-50/60 transition-colors">
+                    <td className="px-5 py-4">
+                      <Link href={`/students/${student.id}`} className="block">
+                        <p className="text-sm font-semibold text-gray-900 group-hover:text-brand-700 leading-tight">{student.firstName} {student.lastName}</p>
+                        {student.email && <p className="text-xs text-gray-400 mt-0.5">{student.email}</p>}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-4"><span className="text-sm text-gray-600">{student.plan?.name ?? '—'}</span></td>
+                    <td className="px-5 py-4"><span className="text-sm text-gray-500">{student.initialWeight ? `${student.initialWeight} kg` : '—'}</span></td>
+                    <td className="px-5 py-4"><span className="text-sm text-gray-500">{prev ? `${prev.weight} kg` : '—'}</span></td>
+                    <td className="px-5 py-4"><WeightCell records={sorted} goal={student.goal} /></td>
+                    <td className="px-5 py-4">
+                      <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', student.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500')}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full', student.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-gray-400')} />
+                        {student.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', student.isOverdue ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700')}>
+                        <span className={cn('w-1.5 h-1.5 rounded-full', student.isOverdue ? 'bg-red-500' : 'bg-emerald-500')} />
+                        {student.isOverdue ? 'En mora' : 'Al día'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4"><span className="text-sm text-gray-500">{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span></td>
+                    <td className="px-3 py-4">
+                      <ActionDropdown student={student} onWeight={() => openWeight(student)} onPayment={() => openPayment(student)} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
