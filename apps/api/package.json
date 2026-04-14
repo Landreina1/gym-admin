@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
+    "build": "prisma generate && nest build",
     "start": "node dist/main",
     "lint": "eslint src --ext .ts"
+  },
+  "prisma": {
+    "schema": "../../prisma/schema.prisma"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
