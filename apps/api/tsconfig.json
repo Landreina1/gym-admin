@@ -20,5 +20,6 @@
     "paths": {
       "@gym/shared": ["../../packages/shared/src"]
     }
-  }
+  },
+  "exclude": ["node_modules", "prisma", "dist", "test"]
 }
