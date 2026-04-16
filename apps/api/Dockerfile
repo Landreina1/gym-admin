@@ -8,14 +8,17 @@ COPY package*.json ./
 RUN npm install
 
 COPY prisma ./prisma
-COPY . .
+COPY nest-cli.json tsconfig*.json ./
+COPY src ./src
 
 RUN npx prisma generate --schema=./prisma/schema.prisma
+
 RUN npx nest build
-RUN ls -la /app/dist/ && echo "dist/main.js exists:" && test -f /app/dist/main.js && echo "YES" || echo "NO - build failed to create dist/main.js"
+
+RUN test -f dist/main.js || (echo "ERROR: dist/main.js not found after nest build" && exit 1)
 
 ENV NODE_ENV=production
 
 EXPOSE 3001
 
-CMD ["node", "/app/dist/main"]
+CMD ["node", "dist/main"]
