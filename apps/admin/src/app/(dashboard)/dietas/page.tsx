@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Plus, Pencil, Trash2, Salad, Clock, ChevronDown, ChevronUp, BookOpen, X,
+  Plus, Pencil, Trash2, Salad, Clock, ChevronDown, ChevronUp, BookOpen, X, Check,
 } from 'lucide-react';
 import { dietService, type DietTemplate, type Meal } from '@/services/diet.service';
 import { Toast } from '@/components/ui/Toast';
