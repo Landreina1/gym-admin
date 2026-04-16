@@ -12,9 +12,10 @@ COPY . .
 
 RUN npx prisma generate --schema=./prisma/schema.prisma
 RUN npx nest build
+RUN ls -la /app/dist/ && echo "dist/main.js exists:" && test -f /app/dist/main.js && echo "YES" || echo "NO - build failed to create dist/main.js"
 
 ENV NODE_ENV=production
 
 EXPOSE 3001
 
-CMD ["node", "dist/main"]
+CMD ["node", "/app/dist/main"]
