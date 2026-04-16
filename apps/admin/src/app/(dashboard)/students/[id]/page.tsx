@@ -285,11 +285,11 @@ export default function StudentDetailPage() {
               const yMax2 = vals.length ? Math.ceil(Math.max(...vals) + 2) : 100;
 
               const DATE_FILTERS = [
-                { key: 'all',        label: 'Todos los meses' },
-                { key: 'this_month', label: 'Este mes' },
-                { key: 'last_month', label: 'Mes anterior' },
-                { key: 'custom',     label: 'Personalizado', icon: true },
-              ] as const;
+                { key: 'all',        label: 'Todos los meses', icon: false },
+                { key: 'this_month', label: 'Este mes',        icon: false },
+                { key: 'last_month', label: 'Mes anterior',    icon: false },
+                { key: 'custom',     label: 'Personalizado',   icon: true },
+              ];
 
               return (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -318,7 +318,7 @@ export default function StudentDetailPage() {
                       {DATE_FILTERS.map((f) => (
                         <button key={f.key}
                           onClick={() => {
-                            setDateFilter(f.key);
+                            setDateFilter(f.key as 'all' | 'this_month' | 'last_month' | 'custom');
                             if (f.key === 'custom') setShowCustom(true);
                             else setShowCustom(false);
                           }}
