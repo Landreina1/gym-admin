@@ -62,7 +62,7 @@ export default function LoginPage() {
           position: relative;
           overflow: hidden;
           background:
-            linear-gradient(135deg, rgba(0,0,0,0.92) 0%, rgba(20,5,5,0.88) 50%, rgba(40,8,8,0.82) 100%),
+            linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(15,3,3,0.70) 50%, rgba(35,5,5,0.65) 100%),
             url('/pesas.jpg') center/cover no-repeat;
           background-color: #0a0a0a;
         }
