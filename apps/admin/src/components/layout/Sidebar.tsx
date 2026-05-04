@@ -59,7 +59,7 @@ function NavItem({ href, label, icon: Icon, isActive, onClick }: {
       )}
       <Icon style={{
         width: 16, height: 16, flexShrink: 0,
-        color: isActive ? 'var(--sidebar-active-text)' : 'var(--sidebar-text)',
+        color: isActive ? 'var(--sidebar-icon-active)' : 'var(--sidebar-text)',
       }} />
       {label}
     </Link>

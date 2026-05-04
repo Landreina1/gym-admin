@@ -58,9 +58,9 @@ function PageSkeleton() {
 
 // ── KPI Card ───────────────────────────────────────────────────────────────────
 const KPI_CONFIG = {
-  blue:   { iconBg: '#eff6ff', iconColor: '#2563eb', valueBg: '#dbeafe', valueColor: '#1d4ed8', border: '#bfdbfe' },
+  blue:   { iconBg: '#f1f5f9', iconColor: '#475569', valueBg: '#e2e8f0', valueColor: '#334155', border: '#e2e8f0' },
   green:  { iconBg: '#f0fdf4', iconColor: '#16a34a', valueBg: '#dcfce7', valueColor: '#15803d', border: '#bbf7d0' },
-  red:    { iconBg: '#fef2f2', iconColor: '#dc2626', valueBg: '#fee2e2', valueColor: '#b91c1c', border: '#fecaca' },
+  red:    { iconBg: '#fef2f2', iconColor: '#E53935', valueBg: '#fee2e2', valueColor: '#C62828', border: '#fecaca' },
   amber:  { iconBg: '#fffbeb', iconColor: '#d97706', valueBg: '#fef3c7', valueColor: '#b45309', border: '#fde68a' },
 } as const;
 
@@ -259,7 +259,7 @@ export default function DashboardPage() {
           padding: '8px 14px', borderRadius: 10,
           background: 'var(--brand-600)', color: '#fff',
           fontSize: 12, fontWeight: 600, textDecoration: 'none',
-          boxShadow: '0 2px 8px rgba(2,132,199,0.25)',
+          boxShadow: '0 2px 8px rgba(229,57,53,0.25)',
         }}>
           <Plus style={{ width: 14, height: 14 }} />
           Registrar pago
@@ -280,7 +280,7 @@ export default function DashboardPage() {
         {/* Revenue line chart */}
         <Card>
           <CardHeader
-            icon={<TrendingUp style={{ width: 15, height: 15, color: '#0284c7' }} />}
+            icon={<TrendingUp style={{ width: 15, height: 15, color: '#E53935' }} />}
             iconBg="#eff6ff"
             title="Ingresos por mes"
             sub="Últimos 6 meses"
@@ -355,7 +355,7 @@ export default function DashboardPage() {
                 padding: '8px 16px', borderRadius: 10,
                 background: 'var(--brand-600)', color: '#fff',
                 fontSize: 12, fontWeight: 600, textDecoration: 'none',
-                boxShadow: '0 2px 8px rgba(2,132,199,0.2)',
+                boxShadow: '0 2px 8px rgba(229,57,53,0.2)',
               }}>
                 <Plus style={{ width: 13, height: 13 }} />
                 Registrar pago
@@ -469,7 +469,7 @@ export default function DashboardPage() {
       {progressByStudent.length > 0 && (
         <Card>
           <CardHeader
-            icon={<TrendingUp style={{ width: 15, height: 15, color: '#0284c7' }} />}
+            icon={<TrendingUp style={{ width: 15, height: 15, color: '#E53935' }} />}
             iconBg="#eff6ff"
             title="Progreso de alumnos"
             sub="Último registro vs anterior"

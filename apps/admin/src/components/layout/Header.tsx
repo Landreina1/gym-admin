@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Bell, LogOut, ChevronDown, User, Shield,
-  Sliders, Settings, Dumbbell, Menu,
+  Bell, LogOut, ChevronDown,
+  Settings, Dumbbell, Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/context/sidebar.context';
@@ -25,14 +25,7 @@ function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg'
 const MENU_SECTIONS = [
   {
     items: [
-      { href: '/perfil',                label: 'Mi perfil',                  icon: User,     desc: 'Datos personales' },
-      { href: '/perfil?tab=seguridad',  label: 'Seguridad',                  icon: Shield,   desc: 'Cambiar contraseña' },
-      { href: '/perfil?tab=preferencias', label: 'Preferencias',             icon: Sliders,  desc: 'Idioma y tema' },
-    ],
-  },
-  {
-    items: [
-      { href: '/settings', label: 'Configuración del sistema', icon: Settings, desc: 'Opciones generales' },
+      { href: '/settings', label: 'Configuración', icon: Settings, desc: 'Cuenta y contraseña' },
     ],
   },
 ];
