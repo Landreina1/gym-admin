@@ -61,10 +61,11 @@ export default function LoginPage() {
           padding: 40px 48px;
           position: relative;
           overflow: hidden;
-          background:
-            linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(15,3,3,0.70) 50%, rgba(35,5,5,0.65) 100%),
-            url('/pesas.jpg') center/cover no-repeat;
           background-color: #0a0a0a;
+          background-image: linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(10,2,2,0.60) 100%), url('/pesas.jpg');
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
         }
 
         /* red glow accents */
