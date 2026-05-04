@@ -3,18 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Users, CreditCard, Bell,
+  LayoutDashboard, Users, CreditCard,
   Settings, Dumbbell, PackageOpen, X, Salad,
 } from 'lucide-react';
 import { useSidebar } from '@/context/sidebar.context';
 
 const navItems = [
-  { href: '/dashboard',     label: 'Resumen',        icon: LayoutDashboard },
-  { href: '/students',      label: 'Alumnos',        icon: Users },
-  { href: '/payments',      label: 'Pagos',          icon: CreditCard },
-  { href: '/notifications', label: 'Notificaciones', icon: Bell },
-  { href: '/planes',        label: 'Planes',         icon: PackageOpen },
-  { href: '/dietas',        label: 'Dietas',         icon: Salad },
+  { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard },
+  { href: '/students',  label: 'Alumnos', icon: Users },
+  { href: '/payments',  label: 'Pagos',   icon: CreditCard },
+  { href: '/planes',    label: 'Planes',  icon: PackageOpen },
+  { href: '/dietas',    label: 'Dietas',  icon: Salad },
 ];
 
 function NavItem({ href, label, icon: Icon, isActive, onClick }: {
@@ -86,7 +85,7 @@ function SidebarContent({ onClose }: { onClose: () => void }) {
       {/* Subtle top gradient glow */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 200,
-        background: 'radial-gradient(ellipse at 60% 0%, rgba(14,165,233,0.1) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse at 60% 0%, rgba(220,38,38,0.12) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
@@ -104,12 +103,12 @@ function SidebarContent({ onClose }: { onClose: () => void }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 10,
-            background: 'rgba(14,165,233,0.2)',
-            border: '1px solid rgba(14,165,233,0.3)',
+            width: 36, height: 36, borderRadius: 10, overflow: 'hidden',
+            border: '1px solid rgba(220,38,38,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#fff',
           }}>
-            <Dumbbell style={{ width: 16, height: 16, color: '#7dd3fc' }} />
+            <img src="/gym-cuba.jpg" alt="Gym El Cuba" style={{ width: 36, height: 36, objectFit: 'cover' }} />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>Gym El Cuba</p>

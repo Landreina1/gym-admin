@@ -121,7 +121,7 @@ export default function LoginPage() {
           text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
         }
         .lf-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-        .lf-forgot { font-size: 12px; color: #0284c7; font-weight: 500; background: none; border: none; cursor: pointer; padding: 0; }
+        .lf-forgot { font-size: 12px; color: #dc2626; font-weight: 500; background: none; border: none; cursor: pointer; padding: 0; }
         .lf-icon {
           position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
           width: 16px; height: 16px; color: #cbd5e1; pointer-events: none;
@@ -134,8 +134,8 @@ export default function LoginPage() {
         }
         .lf-input::placeholder { color: #cbd5e1; }
         .lf-input:focus {
-          border-color: #0284c7; background: #fff;
-          box-shadow: 0 0 0 3px rgba(2,132,199,0.12);
+          border-color: #dc2626; background: #fff;
+          box-shadow: 0 0 0 3px rgba(220,38,38,0.12);
         }
         .lf-input-pr { padding-right: 44px; }
         .lf-eye {
@@ -163,14 +163,14 @@ export default function LoginPage() {
         /* ─── Button ─── */
         .lf-btn {
           width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
-          padding: 14px 24px; background: #0284c7; color: #fff;
+          padding: 14px 24px; background: #dc2626; color: #fff;
           border: none; border-radius: 12px; font-size: 14px; font-weight: 600;
-          cursor: pointer; box-shadow: 0 4px 16px rgba(2,132,199,0.32);
+          cursor: pointer; box-shadow: 0 4px 16px rgba(220,38,38,0.32);
           transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
         }
         .lf-btn:hover:not(:disabled) {
-          background: #0369a1; transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(2,132,199,0.42);
+          background: #b91c1c; transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(220,38,38,0.42);
         }
         .lf-btn:active:not(:disabled) { transform: translateY(0); }
         .lf-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -200,7 +200,7 @@ export default function LoginPage() {
         .lf-mobile {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           min-height: 100vh; padding: 24px;
-          background: linear-gradient(135deg, #0a1628 0%, #0d2352 45%, #0284c7 100%);
+          background: linear-gradient(135deg, #1a0505 0%, #3d0a0a 45%, #dc2626 100%);
           position: relative; overflow: hidden;
         }
         .lf-mobile::before {
@@ -213,12 +213,12 @@ export default function LoginPage() {
         .lf-glow-tr {
           position: absolute; top: -140px; right: -140px;
           width: 420px; height: 420px; border-radius: 50%; pointer-events: none;
-          background: radial-gradient(circle, rgba(56,189,248,0.22) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(239,68,68,0.22) 0%, transparent 70%);
         }
         .lf-glow-bl {
           position: absolute; bottom: -160px; left: -80px;
           width: 400px; height: 400px; border-radius: 50%; pointer-events: none;
-          background: radial-gradient(circle, rgba(14,165,233,0.16) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(220,38,38,0.16) 0%, transparent 70%);
         }
         .lf-mobile-inner {
           position: relative; z-index: 10;
@@ -234,7 +234,7 @@ export default function LoginPage() {
           backdrop-filter: blur(8px);
         }
         .lf-mobile-title { font-size: 26px; font-weight: 700; color: #fff; margin: 0 0 4px; }
-        .lf-mobile-sub   { font-size: 14px; color: rgba(186,230,253,0.65); margin: 0; }
+        .lf-mobile-sub   { font-size: 14px; color: rgba(254,202,202,0.65); margin: 0; }
         .lf-card {
           background: #fff; border-radius: 20px; padding: 28px;
           box-shadow: 0 24px 64px rgba(0,0,0,0.28), 0 4px 16px rgba(0,0,0,0.12);
@@ -257,7 +257,7 @@ export default function LoginPage() {
           .lf-left {
             width: 52%; display: flex; flex-direction: column; justify-content: space-between;
             padding: 48px; position: relative; overflow: hidden;
-            background: linear-gradient(135deg, #0a1628 0%, #0d2352 45%, #0284c7 100%);
+            background: linear-gradient(135deg, #1a0505 0%, #3d0a0a 45%, #dc2626 100%);
           }
           .lf-left::before {
             content: ''; position: absolute; inset: 0; pointer-events: none;
@@ -269,12 +269,12 @@ export default function LoginPage() {
           .lf-left-glow-tr {
             position: absolute; top: -160px; right: -160px;
             width: 520px; height: 520px; border-radius: 50%; pointer-events: none;
-            background: radial-gradient(circle, rgba(56,189,248,0.18) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(239,68,68,0.18) 0%, transparent 70%);
           }
           .lf-left-glow-bl {
             position: absolute; bottom: -180px; left: -100px;
             width: 480px; height: 480px; border-radius: 50%; pointer-events: none;
-            background: radial-gradient(circle, rgba(14,165,233,0.14) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(220,38,38,0.14) 0%, transparent 70%);
           }
           .lf-left-badge {
             position: relative; z-index: 10;
@@ -295,9 +295,9 @@ export default function LoginPage() {
             font-size: 52px; font-weight: 800; color: #fff;
             line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 16px;
           }
-          .lf-left-title span { color: #7dd3fc; }
+          .lf-left-title span { color: #fca5a5; }
           .lf-left-desc {
-            font-size: 16px; color: rgba(186,230,253,0.62);
+            font-size: 16px; color: rgba(254,202,202,0.62);
             line-height: 1.6; max-width: 300px; margin: 0 0 40px;
           }
           .lf-features { display: flex; flex-direction: column; gap: 16px; }
@@ -309,7 +309,7 @@ export default function LoginPage() {
             color: #7dd3fc;
           }
           .lf-feature-title { font-size: 14px; font-weight: 600; color: #fff; margin: 0 0 2px; }
-          .lf-feature-desc  { font-size: 12px; color: rgba(186,230,253,0.5); margin: 0; }
+          .lf-feature-desc  { font-size: 12px; color: rgba(254,202,202,0.5); margin: 0; }
 
           .lf-left-footer {
             position: relative; z-index: 10;
@@ -340,13 +340,13 @@ export default function LoginPage() {
         <div className="lf-glow-bl" />
         <div className="lf-inner lf-animate" style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 420 }}>
           <div className="lf-mobile-brand">
-            <div className="lf-mobile-icon">
-              <Dumbbell style={{ width: 26, height: 26, color: '#fff' }} />
+            <div className="lf-mobile-icon" style={{ overflow: 'hidden', background: '#fff', padding: 0 }}>
+              <img src="/gym-cuba.jpg" alt="Gym El Cuba" style={{ width: 54, height: 54, objectFit: 'cover', borderRadius: 16 }} />
             </div>
-            <h1 className="lf-mobile-title">Bienvenido 👋</h1>
+            <h1 className="lf-mobile-title">Bienvenido Gym El Cuba 🇨🇺🇻🇪</h1>
             <p className="lf-mobile-sub">Accedé a tu panel de control</p>
           </div>
-          <form className="lf-card" onSubmit={handleSubmit}>
+          <form className="lf-card" onSubmit={handleSubmit} autoComplete="off">
             {formInner}
           </form>
           <p className="lf-footer-dark">© {new Date().getFullYear()} Gym El Cuba · Panel Administrativo</p>
@@ -401,10 +401,10 @@ export default function LoginPage() {
         <div className="lf-right">
           <div className="lf-right-inner lf-animate">
             <div className="lf-right-heading">
-              <h1 className="lf-right-title">Bienvenido 👋</h1>
+              <h1 className="lf-right-title">Bienvenido Gym El Cuba 🇨🇺🇻🇪</h1>
               <p className="lf-right-sub">Accedé a tu panel de control</p>
             </div>
-            <form className="lf-card-desktop" onSubmit={handleSubmit}>
+            <form className="lf-card-desktop" onSubmit={handleSubmit} autoComplete="off">
               {formInner}
             </form>
             <p className="lf-footer-light">© {new Date().getFullYear()} Gym El Cuba · Panel Administrativo</p>

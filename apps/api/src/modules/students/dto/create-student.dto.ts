@@ -117,4 +117,9 @@ export class CreateStudentDto {
   @IsNumber()
   @IsOptional()
   glutes?: number;
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @IsOptional()
+  trackHeight?: boolean;
 }
