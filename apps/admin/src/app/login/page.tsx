@@ -63,7 +63,7 @@ export default function LoginPage() {
           overflow: hidden;
           background:
             linear-gradient(135deg, rgba(0,0,0,0.92) 0%, rgba(20,5,5,0.88) 50%, rgba(40,8,8,0.82) 100%),
-            url('/gym-bg.jpg') center/cover no-repeat;
+            url('/pesas.jpg') center/cover no-repeat;
           background-color: #0a0a0a;
         }
 
