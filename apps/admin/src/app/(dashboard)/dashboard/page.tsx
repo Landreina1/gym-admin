@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Users, UserCheck, AlertCircle, TrendingUp,
@@ -8,6 +9,7 @@ import {
   CreditCard, Calendar, PartyPopper, Plus, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import { QuickPaymentModal } from '@/components/payments/QuickPaymentModal';
 import { dashboardService } from '@/services/dashboard.service';
 import { paymentsService } from '@/services/payments.service';
 import { formatDate, cn, formatCurrency } from '@/lib/utils';
@@ -198,6 +200,7 @@ function CardHeader({ icon, iconBg, title, sub, action }: {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const [payModal, setPayModal] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: dashboardService.getStats,
@@ -244,6 +247,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5 animate-slide-up">
 
+      {payModal && <QuickPaymentModal onClose={() => setPayModal(false)} />}
+
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
@@ -254,16 +259,16 @@ export default function DashboardPage() {
             Visión general del gimnasio
           </p>
         </div>
-        <Link href="/payments" style={{
+        <button onClick={() => setPayModal(true)} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '8px 14px', borderRadius: 10,
+          padding: '8px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
           background: 'var(--brand-600)', color: '#fff',
-          fontSize: 12, fontWeight: 600, textDecoration: 'none',
+          fontSize: 12, fontWeight: 600,
           boxShadow: '0 2px 8px rgba(229,57,53,0.25)',
         }}>
           <Plus style={{ width: 14, height: 14 }} />
           Registrar pago
-        </Link>
+        </button>
       </div>
 
       {/* ── KPI Cards ── */}
@@ -350,16 +355,16 @@ export default function DashboardPage() {
               <p style={{ margin: '0 0 20px', fontSize: 12, color: 'var(--text-muted)', maxWidth: 220 }}>
                 No hay pagos próximos a vencer en los próximos 7 días.
               </p>
-              <Link href="/payments" style={{
+              <button onClick={() => setPayModal(true)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px', borderRadius: 10,
+                padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
                 background: 'var(--brand-600)', color: '#fff',
-                fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                fontSize: 12, fontWeight: 600,
                 boxShadow: '0 2px 8px rgba(229,57,53,0.2)',
               }}>
                 <Plus style={{ width: 13, height: 13 }} />
                 Registrar pago
-              </Link>
+              </button>
             </div>
           ) : (
             <>

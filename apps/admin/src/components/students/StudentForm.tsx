@@ -50,6 +50,7 @@ export function StudentForm({ student }: StudentFormProps) {
   const [form, setForm] = useState({
     firstName:      student?.firstName ?? '',
     lastName:       student?.lastName ?? '',
+    cedula:         (student as any)?.cedula ?? '',
     email:          student?.email ?? '',
     phone:          student?.phone ?? '',
     birthDate:      student?.birthDate ? student.birthDate.slice(0, 10) : '',
@@ -124,6 +125,9 @@ export function StudentForm({ student }: StudentFormProps) {
           </Field>
           <Field label="Apellido" required>
             <input type="text" required value={form.lastName} onChange={(e) => set('lastName', e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Cédula" required>
+            <input type="text" required value={form.cedula} onChange={(e) => set('cedula', e.target.value)} className={inputClass} placeholder="Ej: V-12345678" />
           </Field>
           <Field label="Email">
             <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className={inputClass} />

@@ -17,6 +17,7 @@ export interface Student {
   id: string;
   firstName: string;
   lastName: string;
+  cedula?: string;
   email?: string;
   phone?: string;
   birthDate?: string;

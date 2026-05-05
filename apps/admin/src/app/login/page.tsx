@@ -62,10 +62,6 @@ export default function LoginPage() {
           position: relative;
           overflow: hidden;
           background-color: #0a0a0a;
-          background-image: linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(10,2,2,0.60) 100%), url('/pesas.jpg');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
         }
 
         /* red glow accents */
@@ -315,8 +311,24 @@ export default function LoginPage() {
         {/* ══════ LEFT PANEL ══════ */}
         <div className="login-left">
 
+          {/* Background photo */}
+          <img
+            src="/pesas.jpg"
+            alt=""
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover', zIndex: 0,
+            }}
+          />
+          {/* Dark overlay */}
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 1,
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.72) 0%, rgba(10,2,2,0.65) 60%, rgba(30,5,5,0.60) 100%)',
+          }} />
+
           {/* Brand */}
-          <div className="login-brand">
+          <div className="login-brand" style={{ position: 'relative', zIndex: 2 }}>
             <div className="login-brand-icon">
               <Dumbbell style={{ width: 20, height: 20, color: '#fff' }} />
             </div>
@@ -324,7 +336,7 @@ export default function LoginPage() {
           </div>
 
           {/* Hero */}
-          <div className="login-hero">
+          <div className="login-hero" style={{ position: 'relative', zIndex: 2 }}>
             <h1 className="login-hero-title">
               Gestioná tu<br />
               <span>gimnasio</span><br />
@@ -348,7 +360,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="login-footer-left">© {new Date().getFullYear()} Gym El Cuba · v1.0</p>
+          <p className="login-footer-left" style={{ position: 'relative', zIndex: 2 }}>© {new Date().getFullYear()} Gym El Cuba · v1.0</p>
         </div>
 
         {/* ══════ RIGHT PANEL ══════ */}

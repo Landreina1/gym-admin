@@ -50,6 +50,7 @@ model Student {
   id             String         @id @default(cuid())
   firstName      String
   lastName       String
+  cedula         String?
   email          String?        @unique
   phone          String?
   birthDate      DateTime?

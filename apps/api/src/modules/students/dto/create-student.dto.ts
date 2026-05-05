@@ -22,6 +22,10 @@ export class CreateStudentDto {
   @IsString()
   lastName: string;
 
+  @ApiProperty({ description: 'Número de cédula' })
+  @IsString()
+  cedula: string;
+
   @ApiPropertyOptional()
   @IsEmail()
   @IsOptional()
