@@ -22,9 +22,11 @@ export default function LoginPage() {
   const [error,    setError]    = useState('');
   const [success,  setSuccess]  = useState(false);
   const [loading,  setLoading]  = useState(false);
+  const [touched,  setTouched]  = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!touched) return;
     setError('');
     setLoading(true);
     try {
@@ -34,8 +36,8 @@ export default function LoginPage() {
       document.cookie = `gym_token=${data.token}; path=/; max-age=${7 * 24 * 3600}; SameSite=Strict`;
       setSuccess(true);
       setTimeout(() => router.push('/dashboard'), 1200);
-    } catch (err: any) {
-      setError(err.message || 'Credenciales inválidas');
+    } catch {
+      setError('Email o contraseña incorrectos');
       setLoading(false);
     }
   }
@@ -179,11 +181,13 @@ export default function LoginPage() {
           color: #121212;
           margin-bottom: 6px;
           letter-spacing: -0.01em;
+          text-align: center;
         }
         .login-right-sub {
           font-size: 14px;
           color: #6B7280;
           margin-bottom: 32px;
+          text-align: center;
         }
 
         /* ── Form ── */
@@ -377,7 +381,7 @@ export default function LoginPage() {
               </span>
             </div>
 
-            <h1 className="login-right-title">Bienvenido 👋</h1>
+            <h1 className="login-right-title">Bienvenido</h1>
             <p className="login-right-sub">Accedé a tu panel de control</p>
 
             <form onSubmit={handleSubmit} autoComplete="off">
@@ -388,7 +392,7 @@ export default function LoginPage() {
                   <Mail className="lf-icon" />
                   <input
                     type="email" required
-                    value={email} onChange={(e) => setEmail(e.target.value)}
+                    value={email} onChange={(e) => { setEmail(e.target.value); setTouched(true); }}
                     placeholder="admin@gym.com"
                     className="lf-input"
                   />
@@ -405,7 +409,7 @@ export default function LoginPage() {
                   <Lock className="lf-icon" />
                   <input
                     type={showPass ? 'text' : 'password'} required
-                    value={password} onChange={(e) => setPassword(e.target.value)}
+                    value={password} onChange={(e) => { setPassword(e.target.value); setTouched(true); }}
                     placeholder="••••••••"
                     className="lf-input lf-input-pr"
                   />

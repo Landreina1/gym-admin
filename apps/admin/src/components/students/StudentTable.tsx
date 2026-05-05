@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   ArrowUp, ArrowDown, Minus, MoreVertical,
@@ -47,37 +48,59 @@ function WeightCell({ records, goal }: { records?: { weight: number; recordedAt:
   );
 }
 
-/* ─── Desktop action dropdown ─────────────────────────────── */
+/* ─── Desktop action dropdown (portal) ───────────────────── */
 function ActionDropdown({ student, onWeight, onPayment }: { student: Student; onWeight: () => void; onPayment: () => void }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
-    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
+    if (!open) return;
+    function close() { setOpen(false); }
+    document.addEventListener('mousedown', close);
+    document.addEventListener('scroll', close, true);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('scroll', close, true);
+    };
+  }, [open]);
+
+  function handleToggle() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: Math.max(8, r.right - 176) });
+    }
+    setOpen((o) => !o);
+  }
+
+  const menu = (
+    <div
+      style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 9999, width: 176 }}
+      className="bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <Link href={`/students/${student.id}`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
+        <Eye className="w-4 h-4 text-gray-400" /> Ver detalle
+      </Link>
+      <Link href={`/students/${student.id}/edit`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
+        <Pencil className="w-4 h-4 text-gray-400" /> Editar alumno
+      </Link>
+      <div className="border-t border-gray-100 my-1" />
+      <button onClick={() => { setOpen(false); onWeight(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
+        <Scale className="w-4 h-4 text-gray-400" /> Registrar peso
+      </button>
+      <button onClick={() => { setOpen(false); onPayment(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-brand-600 hover:bg-brand-50 font-medium">
+        <CreditCard className="w-4 h-4" /> Registrar pago
+      </button>
+    </div>
+  );
+
   return (
-    <div ref={ref} className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+    <div>
+      <button ref={btnRef} onClick={handleToggle} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
         <MoreVertical className="w-4 h-4" />
       </button>
-      {open && (
-        <div className="absolute right-0 top-8 z-20 w-44 bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm">
-          <Link href={`/students/${student.id}`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
-            <Eye className="w-4 h-4 text-gray-400" /> Ver detalle
-          </Link>
-          <Link href={`/students/${student.id}/edit`} onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
-            <Pencil className="w-4 h-4 text-gray-400" /> Editar alumno
-          </Link>
-          <div className="border-t border-gray-100 my-1" />
-          <button onClick={() => { setOpen(false); onWeight(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
-            <Scale className="w-4 h-4 text-gray-400" /> Registrar peso
-          </button>
-          <button onClick={() => { setOpen(false); onPayment(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-brand-600 hover:bg-brand-50 font-medium">
-            <CreditCard className="w-4 h-4" /> Registrar pago
-          </button>
-        </div>
-      )}
+      {open && createPortal(menu, document.body)}
     </div>
   );
 }
