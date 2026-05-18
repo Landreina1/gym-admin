@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Student" ADD COLUMN "cedula" TEXT;
+ALTER TABLE "Student" ADD COLUMN IF NOT EXISTS "cedula" TEXT;
