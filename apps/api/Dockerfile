@@ -21,4 +21,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3001
 
-CMD sh -c "npx prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main"
+CMD sh -c "npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss --skip-generate && node dist/main"
