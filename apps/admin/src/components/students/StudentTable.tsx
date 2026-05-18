@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   ArrowUp, ArrowDown, Minus, MoreVertical,
   Eye, Pencil, Scale, CreditCard, ChevronRight,
+  Trash2, UserX, UserCheck,
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Student } from '@/types';
@@ -14,6 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
 import { weightService } from '@/services/weight.service';
 import { paymentsService } from '@/services/payments.service';
+import { studentsService } from '@/services/students.service';
 
 const inputClass =
   'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
@@ -49,7 +51,10 @@ function WeightCell({ records, goal }: { records?: { weight: number; recordedAt:
 }
 
 /* ─── Desktop action dropdown (portal) ───────────────────── */
-function ActionDropdown({ student, onWeight, onPayment }: { student: Student; onWeight: () => void; onPayment: () => void }) {
+function ActionDropdown({ student, onWeight, onPayment, onDelete, onSuspend }: {
+  student: Student; onWeight: () => void; onPayment: () => void;
+  onDelete: () => void; onSuspend: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -92,6 +97,15 @@ function ActionDropdown({ student, onWeight, onPayment }: { student: Student; on
       <button onClick={() => { setOpen(false); onPayment(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-brand-600 hover:bg-brand-50 font-medium">
         <CreditCard className="w-4 h-4" /> Registrar pago
       </button>
+      <div className="border-t border-gray-100 my-1" />
+      <button onClick={() => { setOpen(false); onSuspend(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-amber-600 hover:bg-amber-50">
+        {student.status === 'ACTIVE'
+          ? <><UserX className="w-4 h-4" /> Suspender alumno</>
+          : <><UserCheck className="w-4 h-4" /> Reactivar alumno</>}
+      </button>
+      <button onClick={() => { setOpen(false); onDelete(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-red-600 hover:bg-red-50">
+        <Trash2 className="w-4 h-4" /> Eliminar alumno
+      </button>
     </div>
   );
 
@@ -106,7 +120,10 @@ function ActionDropdown({ student, onWeight, onPayment }: { student: Student; on
 }
 
 /* ─── Mobile student card ─────────────────────────────────── */
-function StudentCard({ student, onWeight, onPayment }: { student: Student; onWeight: () => void; onPayment: () => void }) {
+function StudentCard({ student, onWeight, onPayment, onDelete, onSuspend }: {
+  student: Student; onWeight: () => void; onPayment: () => void;
+  onDelete: () => void; onSuspend: () => void;
+}) {
   const records = student.weightRecords ?? [];
   const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
   const initials = `${student.firstName[0]}${student.lastName[0]}`.toUpperCase();
@@ -181,6 +198,20 @@ function StudentCard({ student, onWeight, onPayment }: { student: Student; onWei
         >
           <Eye className="w-3.5 h-3.5" />
         </Link>
+        <button
+          onClick={onSuspend}
+          title={student.status === 'ACTIVE' ? 'Suspender' : 'Reactivar'}
+          className="flex items-center justify-center px-3 py-2.5 border border-amber-200 rounded-xl text-amber-600 hover:bg-amber-50 active:bg-amber-100 transition-colors"
+        >
+          {student.status === 'ACTIVE' ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+        </button>
+        <button
+          onClick={onDelete}
+          title="Eliminar"
+          className="flex items-center justify-center px-3 py-2.5 border border-red-200 rounded-xl text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -193,6 +224,7 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
 
   const [weightStudent, setWeightStudent] = useState<Student | null>(null);
   const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);
+  const [deleteStudent, setDeleteStudent] = useState<Student | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [weightForm, setWeightForm] = useState({ weight: '', recordedAt: today, notes: '' });
   const [paymentForm, setPaymentForm] = useState({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' });
@@ -219,8 +251,29 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
     onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => studentsService.delete(deleteStudent!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      setDeleteStudent(null);
+      setToast({ message: 'Alumno eliminado correctamente', type: 'success' });
+    },
+    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
+  });
+
+  const suspendMutation = useMutation({
+    mutationFn: ({ id, newStatus }: { id: string; newStatus: string }) =>
+      studentsService.update(id, { status: newStatus } as any),
+    onSuccess: (_, { newStatus }) => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      setToast({ message: newStatus === 'INACTIVE' ? 'Alumno suspendido' : 'Alumno reactivado', type: 'success' });
+    },
+    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
+  });
+
   function openWeight(s: Student) { setWeightForm({ weight: '', recordedAt: today, notes: '' }); setWeightStudent(s); }
   function openPayment(s: Student) { setPaymentForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' }); setPaymentStudent(s); }
+  function handleSuspend(s: Student) { suspendMutation.mutate({ id: s.id, newStatus: s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }); }
 
   if (isLoading) {
     return (
@@ -255,6 +308,26 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* ── Delete confirmation modal ── */}
+      <Modal isOpen={!!deleteStudent} onClose={() => setDeleteStudent(null)} title="Eliminar alumno">
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            ¿Estás seguro que querés eliminar a <span className="font-semibold text-gray-900">{deleteStudent?.firstName} {deleteStudent?.lastName}</span>? Esta acción no se puede deshacer.
+          </p>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={() => setDeleteStudent(null)} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
+            <button
+              type="button"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Weight modal ── */}
       <Modal isOpen={!!weightStudent} onClose={() => setWeightStudent(null)} title={`Registrar peso — ${weightStudent?.firstName} ${weightStudent?.lastName}`}>
@@ -318,6 +391,8 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
             student={s}
             onWeight={() => openWeight(s)}
             onPayment={() => openPayment(s)}
+            onDelete={() => setDeleteStudent(s)}
+            onSuspend={() => handleSuspend(s)}
           />
         ))}
       </div>
@@ -364,7 +439,7 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
                     </td>
                     <td className="px-5 py-4"><span className="text-sm text-gray-500">{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span></td>
                     <td className="px-3 py-4">
-                      <ActionDropdown student={student} onWeight={() => openWeight(student)} onPayment={() => openPayment(student)} />
+                      <ActionDropdown student={student} onWeight={() => openWeight(student)} onPayment={() => openPayment(student)} onDelete={() => setDeleteStudent(student)} onSuspend={() => handleSuspend(student)} />
                     </td>
                   </tr>
                 );
