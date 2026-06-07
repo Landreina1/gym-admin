@@ -42,7 +42,7 @@ export class StudentsService {
         include: {
           plan: true,
           weightRecords: { orderBy: { recordedAt: 'desc' }, take: 2 },
-          payments: { orderBy: { paidAt: 'desc' }, take: 1 },
+          payments: { orderBy: { paidAt: 'desc' }, take: 20 },
         },
         orderBy: { lastName: 'asc' },
         skip,
@@ -94,34 +94,60 @@ export class StudentsService {
 
   private withPaymentStatus(student: any) {
     const today = new Date();
-    const lastPayment = student.payments?.[0];
-    let isOverdue = false;
-    let paymentStatus: 'UP_TO_DATE' | 'PARTIAL' | 'OVERDUE' = 'OVERDUE';
-    let nextDueDate: Date | null = null;
+    today.setHours(0, 0, 0, 0);
+    const payments: any[] = student.payments ?? [];
 
-    if (lastPayment) {
-      nextDueDate = new Date(lastPayment.periodEnd);
-      if (nextDueDate >= today) {
-        if (lastPayment.paymentType === 'PARTIAL') {
-          paymentStatus = 'PARTIAL';
-          isOverdue = true; // still owes balance
-        } else {
-          paymentStatus = 'UP_TO_DATE';
-          isOverdue = false;
-        }
-      } else {
-        paymentStatus = 'OVERDUE';
-        isOverdue = true;
-      }
-    } else {
+    if (payments.length === 0) {
       const due = new Date(student.joinDate);
       due.setDate(student.billingDay);
-      if (due < student.joinDate) due.setMonth(due.getMonth() + 1);
-      nextDueDate = due;
-      isOverdue = due < today;
-      paymentStatus = 'OVERDUE';
+      if (due < new Date(student.joinDate)) due.setMonth(due.getMonth() + 1);
+      return {
+        ...student,
+        isOverdue: due < today,
+        paymentStatus: 'OVERDUE' as const,
+        nextDueDate: due,
+        pendingBalance: null,
+        currentPeriodEnd: null,
+      };
     }
 
-    return { ...student, isOverdue, paymentStatus, nextDueDate };
+    // Only consider periods that haven't expired
+    const activePmts = payments.filter((p: any) => new Date(p.periodEnd) >= today);
+
+    if (activePmts.length === 0) {
+      return {
+        ...student,
+        isOverdue: true,
+        paymentStatus: 'OVERDUE' as const,
+        nextDueDate: new Date(payments[0].periodEnd),
+        pendingBalance: null,
+        currentPeriodEnd: null,
+      };
+    }
+
+    // Find the latest active period
+    const latestEnd = activePmts.reduce((latest: Date, p: any) => {
+      const d = new Date(p.periodEnd);
+      return d > latest ? d : latest;
+    }, new Date(0));
+    const latestKey = latestEnd.toISOString().slice(0, 10);
+
+    // All payments belonging to that period
+    const periodPmts = activePmts.filter(
+      (p: any) => new Date(p.periodEnd).toISOString().slice(0, 10) === latestKey,
+    );
+
+    const totalPaid = periodPmts.reduce((s: number, p: any) => s + Number(p.amount), 0);
+    const totalAmount = Number(periodPmts[0].totalAmount ?? periodPmts[0].amount);
+    const isPaid = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
+
+    return {
+      ...student,
+      isOverdue: !isPaid,
+      paymentStatus: (isPaid ? 'UP_TO_DATE' : 'PARTIAL') as 'UP_TO_DATE' | 'PARTIAL',
+      nextDueDate: latestEnd,
+      pendingBalance: isPaid ? 0 : Math.max(0, totalAmount - totalPaid),
+      currentPeriodEnd: latestKey,
+    };
   }
 }

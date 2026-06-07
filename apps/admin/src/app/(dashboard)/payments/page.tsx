@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 import { paymentsService } from '@/services/payments.service';
 import { Toast } from '@/components/ui/Toast';
-import { RegisterPaymentModal } from '@/components/payments/RegisterPaymentModal';
+import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import type { StudentForPayments } from '@/types';
 
@@ -136,7 +136,7 @@ export default function PaymentsPage() {
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <RegisterPaymentModal
+      <PaymentFlowModal
         student={selectedStudent}
         onClose={() => setSelectedStudent(null)}
         onSuccess={() => setToast({ message: 'Pago registrado correctamente', type: 'success' })}
@@ -379,7 +379,7 @@ export default function PaymentsPage() {
               <select value={filterMethod} onChange={(e) => setFilterMethod(e.target.value)}
                 className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none bg-white">
                 <option value="ALL">Método: Todos</option>
-                {PAYMENT_METHODS.map((m) => <option key={m.id} value={m.id}>{m.id}</option>)}
+                {['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'].map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
           </div>

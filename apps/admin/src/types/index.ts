@@ -35,6 +35,8 @@ export interface Student {
   isOverdue?: boolean;
   paymentStatus?: 'UP_TO_DATE' | 'PARTIAL' | 'OVERDUE';
   nextDueDate?: string;
+  pendingBalance?: number;
+  currentPeriodEnd?: string;
   weightRecords?: WeightRecord[];
   payments?: Payment[];
 }
@@ -69,6 +71,8 @@ export interface StudentForPayments {
   billingDay: number;
   paymentStatus: 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE' | 'PARTIAL';
   nextDueDate: string | null;
+  pendingBalance?: number | null;
+  currentPeriodEnd?: string | null;
   lastPayment: {
     id: string;
     amount: number;

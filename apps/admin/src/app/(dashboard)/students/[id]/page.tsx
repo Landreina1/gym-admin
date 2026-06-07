@@ -17,7 +17,7 @@ import { weightService } from '@/services/weight.service';
 import { bodyRecordService } from '@/services/body-record.service';
 import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
-import { RegisterPaymentModal } from '@/components/payments/RegisterPaymentModal';
+import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 import { formatDate, formatCurrency, GOAL_LABELS, cn } from '@/lib/utils';
 
 const inputClass = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
@@ -136,8 +136,16 @@ export default function StudentDetailPage() {
         </form>
       </Modal>
 
-      <RegisterPaymentModal
-        student={paymentModal && student ? { id: student.id, firstName: student.firstName, lastName: student.lastName, plan: student.plan } : null}
+      <PaymentFlowModal
+        student={paymentModal && student ? {
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          plan: student.plan,
+          paymentStatus: student.paymentStatus,
+          pendingBalance: student.pendingBalance,
+          currentPeriodEnd: student.currentPeriodEnd,
+        } : null}
         onClose={() => setPaymentModal(false)}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['student', id] });

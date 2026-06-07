@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, CreditCard, RefreshCw } from 'lucide-react';
+import { X, CreditCard, RefreshCw, AlertCircle } from 'lucide-react';
 import { paymentsService } from '@/services/payments.service';
 
 const METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'];
@@ -17,17 +17,25 @@ interface StudentInfo {
   plan: { name: string; price: number | string };
 }
 
+interface PendingMode {
+  mode: 'complete' | 'abono';
+  pendingBalance: number;
+  periodEnd: string; // YYYY-MM-DD — fixed, reuses existing period
+}
+
 interface Props {
   student: StudentInfo | null;
   onClose: () => void;
   onSuccess?: () => void;
+  pendingMode?: PendingMode;
 }
 
-export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
+export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode }: Props) {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [tab,        setTab]        = useState<'full' | 'partial'>('full');
+  const initialTab = pendingMode ? 'partial' : 'full';
+  const [tab,        setTab]        = useState<'full' | 'partial'>(initialTab);
   const [method,     setMethod]     = useState('Pago Móvil');
   const [bcvRate,    setBcvRate]    = useState('');
   const [loadingBcv, setLoadingBcv] = useState(false);
@@ -35,23 +43,43 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
   const [paidAt,     setPaidAt]     = useState(today);
   const [notes,      setNotes]      = useState('');
   const [error,      setError]      = useState('');
+  const autoFilledRef = useRef(false);
 
   const planPrice = student ? Number(student.plan.price) : 0;
   const showBs = isBs(method);
 
-  // Reset on student change
+  // Reset on student change (but respect pendingMode)
   useEffect(() => {
     if (student) {
-      setTab('full'); setMethod('Pago Móvil'); setBcvRate('');
+      setTab(pendingMode ? 'partial' : 'full');
+      setMethod('Pago Móvil'); setBcvRate('');
       setAmount(''); setPaidAt(today); setNotes(''); setError('');
+      autoFilledRef.current = false;
     }
   }, [student]);
 
-  // Reset amount when method or tab changes
-  useEffect(() => { setAmount(''); setError(''); }, [method, tab]);
+  // Reset amount when method or tab changes (unless we just auto-filled)
+  useEffect(() => {
+    setError('');
+    if (!autoFilledRef.current) setAmount('');
+    autoFilledRef.current = false;
+  }, [method, tab]);
 
   // Auto-fetch BCV when Bs method selected
   useEffect(() => { if (showBs && !bcvRate) fetchBcv(); }, [showBs]);
+
+  // Auto-fill amount for 'complete' mode
+  useEffect(() => {
+    if (pendingMode?.mode !== 'complete') return;
+    const r = Number(bcvRate || 0);
+    if (!showBs) {
+      autoFilledRef.current = true;
+      setAmount(String(pendingMode.pendingBalance));
+    } else if (r > 0) {
+      autoFilledRef.current = true;
+      setAmount((pendingMode.pendingBalance * r).toFixed(2));
+    }
+  }, [pendingMode?.mode, showBs, bcvRate]);
 
   async function fetchBcv() {
     setLoadingBcv(true);
@@ -77,28 +105,29 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
     : Number(amount || 0);
 
   const completeBs = showBs && rate > 0 ? (planPrice * rate).toFixed(2) : null;
-  const remainingUSD = planPrice > 0 ? planPrice - partialUSD : 0;
+  // In pendingMode, remaining is against pendingBalance; otherwise against planPrice
+  const maxUSD = pendingMode ? pendingMode.pendingBalance : planPrice;
+  const remainingUSD = maxUSD > 0 ? maxUSD - partialUSD : 0;
 
   const mutation = useMutation({
     mutationFn: () => {
       if (!student) throw new Error('Sin alumno');
-      const finalAmountUSD = tab === 'full'
-        ? planPrice
-        : partialUSD;
+      const finalAmountUSD = tab === 'full' ? planPrice : partialUSD;
       const noteParts = [
         showBs && bcvRate ? `Tasa BCV: ${bcvRate} Bs/USD` : '',
         showBs && tab === 'full' && completeBs ? `Cobrado: ${Number(completeBs).toLocaleString('es-VE')} Bs` : '',
         showBs && tab === 'partial' && amount ? `Pagado: ${Number(amount).toLocaleString('es-VE')} Bs` : '',
+        pendingMode ? (pendingMode.mode === 'complete' ? 'Cierre de saldo pendiente' : 'Abono a saldo pendiente') : '',
         notes,
       ].filter(Boolean);
       return paymentsService.create({
-        studentId:    student.id,
-        amount:       finalAmountUSD,
-        totalAmount:  planPrice,
-        paymentType:  tab === 'full' ? 'FULL' : 'PARTIAL',
+        studentId:     student.id,
+        amount:        finalAmountUSD,
+        totalAmount:   planPrice,
+        paymentType:   tab === 'full' ? 'FULL' : 'PARTIAL',
         paidAt,
-        periodStart:  paidAt,
-        periodEnd:    calcPeriodEnd(paidAt),
+        periodStart:   paidAt,
+        periodEnd:     pendingMode ? pendingMode.periodEnd : calcPeriodEnd(paidAt),
         paymentMethod: method,
         notes: noteParts.length ? noteParts.join(' | ') : undefined,
       });
@@ -121,10 +150,10 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
     if (showBs && !bcvRate) { setError('Ingresá la tasa BCV para continuar'); return; }
     if (tab === 'partial') {
       if (!amount || Number(amount) <= 0) { setError('El monto debe ser mayor a 0'); return; }
-      if (planPrice > 0 && partialUSD >= planPrice) {
+      if (maxUSD > 0 && partialUSD > maxUSD + 0.01) {
         setError(showBs
-          ? `El monto en Bs equivale a $${partialUSD.toFixed(2)} USD, debe ser menor a $${planPrice} USD`
-          : `El monto parcial debe ser menor a $${planPrice} USD`
+          ? `El monto en Bs equivale a $${partialUSD.toFixed(2)} USD, máximo $${maxUSD.toFixed(2)} USD`
+          : `El monto supera el máximo permitido de $${maxUSD.toFixed(2)} USD`
         );
         return;
       }
@@ -170,18 +199,33 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
             </button>
           </div>
 
-          {/* Tabs */}
-          <div style={{ display: 'flex', padding: '12px 24px 0', gap: 8, flexShrink: 0 }}>
-            {(['full', 'partial'] as const).map((t) => (
-              <button key={t} type="button" onClick={() => { setTab(t); setError(''); setAmount(''); }}
-                style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.15s', background: tab === t ? (t === 'full' ? '#E53935' : '#f59e0b') : '#f4f6f9', color: tab === t ? '#fff' : '#6B7280' }}>
-                {t === 'full' ? 'Pago completo' : 'Pago parcial'}
-              </button>
-            ))}
-          </div>
+          {/* Tabs — hidden in pendingMode (always partial) */}
+          {!pendingMode && (
+            <div style={{ display: 'flex', padding: '12px 24px 0', gap: 8, flexShrink: 0 }}>
+              {(['full', 'partial'] as const).map((t) => (
+                <button key={t} type="button" onClick={() => { setTab(t); setError(''); setAmount(''); }}
+                  style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.15s', background: tab === t ? (t === 'full' ? '#E53935' : '#f59e0b') : '#f4f6f9', color: tab === t ? '#fff' : '#6B7280' }}>
+                  {t === 'full' ? 'Pago completo' : 'Pago parcial'}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} style={{ padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
+
+            {/* Pending balance banner */}
+            {pendingMode && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12 }}>
+                <AlertCircle style={{ width: 15, height: 15, color: '#f59e0b', flexShrink: 0 }} />
+                <p style={{ margin: 0, fontSize: 12, color: '#92400e' }}>
+                  {pendingMode.mode === 'complete'
+                    ? <><strong>Completar saldo:</strong> ${pendingMode.pendingBalance.toFixed(2)} USD restantes</>
+                    : <><strong>Abono:</strong> saldo pendiente de ${pendingMode.pendingBalance.toFixed(2)} USD</>
+                  }
+                </p>
+              </div>
+            )}
 
             {/* 1. Método de pago — PRIMERO */}
             <div>
@@ -233,7 +277,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
                 <label style={lbl}>{showBs ? 'Monto recibido (Bs) *' : 'Monto recibido (USD) *'}</label>
                 <input type="number" min="0.01" step="0.01" required value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder={showBs ? (completeBs ? `Máx: ${Number(completeBs).toLocaleString('es-VE')} Bs` : 'Ej: 1800') : `Máx: $${planPrice}`}
+                  placeholder={showBs ? (completeBs ? `Máx: ${(maxUSD * rate).toLocaleString('es-VE', { maximumFractionDigits: 2 })} Bs` : 'Ej: 1800') : `Máx: $${maxUSD.toFixed(2)}`}
                   className={inp} autoFocus />
                 {showBs && amount && rate > 0 && (
                   <p style={{ marginTop: 4, fontSize: 11, color: '#6B7280' }}>
@@ -254,7 +298,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
               <label style={lbl}>Fecha de pago *</label>
               <input type="date" required value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inp} />
               <p style={{ marginTop: 4, fontSize: 11, color: '#9CA3AF' }}>
-                Período: {paidAt} → {calcPeriodEnd(paidAt)}
+                Período: {paidAt} → {pendingMode ? pendingMode.periodEnd : calcPeriodEnd(paidAt)}
               </p>
             </div>
 

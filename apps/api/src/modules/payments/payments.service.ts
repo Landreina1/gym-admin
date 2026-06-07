@@ -127,29 +127,60 @@ export class PaymentsService {
 
   async findAllStudentsForPayments() {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const students = await this.prisma.student.findMany({
       where: { status: 'ACTIVE' },
       include: {
         plan: true,
-        payments: { orderBy: { paidAt: 'desc' }, take: 1 },
+        payments: { orderBy: { paidAt: 'desc' }, take: 20 },
       },
       orderBy: { lastName: 'asc' },
     });
 
     return students.map((s) => {
-      const lastPmt = s.payments[0] ?? null;
+      const payments = s.payments;
       let paymentStatus: 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE' | 'PARTIAL' = 'OVERDUE';
       let nextDueDate: string | null = null;
+      let pendingBalance: number | null = null;
+      let currentPeriodEnd: string | null = null;
 
-      if (lastPmt) {
-        nextDueDate = lastPmt.periodEnd.toISOString();
-        const msLeft = lastPmt.periodEnd.getTime() - today.getTime();
-        const daysLeft = msLeft / (1000 * 60 * 60 * 24);
-        if (msLeft < 0) paymentStatus = 'OVERDUE';
-        else if (lastPmt.paymentType === 'PARTIAL') paymentStatus = 'PARTIAL';
-        else if (daysLeft <= 7) paymentStatus = 'DUE_SOON';
-        else paymentStatus = 'UP_TO_DATE';
+      if (payments.length > 0) {
+        const activePmts = payments.filter((p) => new Date(p.periodEnd) >= today);
+
+        if (activePmts.length === 0) {
+          nextDueDate = payments[0].periodEnd.toISOString();
+          paymentStatus = 'OVERDUE';
+        } else {
+          const latestEnd = activePmts.reduce(
+            (latest, p) => (p.periodEnd > latest ? p.periodEnd : latest),
+            new Date(0),
+          );
+          const latestKey = latestEnd.toISOString().slice(0, 10);
+          const periodPmts = activePmts.filter(
+            (p) => p.periodEnd.toISOString().slice(0, 10) === latestKey,
+          );
+
+          nextDueDate = latestEnd.toISOString();
+          currentPeriodEnd = latestKey;
+
+          const totalPaid = periodPmts.reduce((sum, p) => sum + Number(p.amount), 0);
+          const totalAmount = Number(periodPmts[0].totalAmount ?? periodPmts[0].amount);
+          const isPaid = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
+
+          if (!isPaid) {
+            paymentStatus = 'PARTIAL';
+            pendingBalance = Math.max(0, totalAmount - totalPaid);
+          } else {
+            pendingBalance = 0;
+            const msLeft = latestEnd.getTime() - today.getTime();
+            const daysLeft = msLeft / (1000 * 60 * 60 * 24);
+            paymentStatus = daysLeft <= 7 ? 'DUE_SOON' : 'UP_TO_DATE';
+          }
+        }
       }
+
+      const lastPmt = payments[0] ?? null;
 
       return {
         id: s.id,
@@ -159,6 +190,8 @@ export class PaymentsService {
         billingDay: s.billingDay,
         paymentStatus,
         nextDueDate,
+        currentPeriodEnd,
+        pendingBalance,
         lastPayment: lastPmt
           ? {
               id: lastPmt.id,

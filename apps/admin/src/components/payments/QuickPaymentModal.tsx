@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, Search, CreditCard, User, RefreshCw } from 'lucide-react';
+import { X, Search, CreditCard, User, RefreshCw, AlertCircle } from 'lucide-react';
 import { studentsService } from '@/services/students.service';
 import { paymentsService } from '@/services/payments.service';
+import { PendingDecisionModal } from './PendingDecisionModal';
 import type { Student } from '@/types';
 
 const METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'];
@@ -14,13 +15,17 @@ function isBs(method: string) { return BS_METHODS.includes(method); }
 
 interface Props { onClose: () => void; onSuccess?: () => void }
 
+type PendingDecision = 'complete' | 'abono';
+
 export function QuickPaymentModal({ onClose, onSuccess }: Props) {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [tab,        setTab]        = useState<'full' | 'partial'>('full');
-  const [cedula,     setCedula]     = useState('');
-  const [student,    setStudent]    = useState<Student | null>(null);
+  const [tab,             setTab]            = useState<'full' | 'partial'>('full');
+  const [cedula,          setCedula]         = useState('');
+  const [student,         setStudent]        = useState<Student | null>(null);
+  const [pendingDecision, setPendingDecision] = useState<PendingDecision | null>(null);
+  const [showDecision,    setShowDecision]   = useState(false);
   const [method,     setMethod]     = useState('Pago Móvil');
   const [bcvRate,    setBcvRate]    = useState('');
   const [loadingBcv, setLoadingBcv] = useState(false);
@@ -39,11 +44,14 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
   const allStudents = studentsData?.data ?? [];
 
   useEffect(() => {
-    if (!cedula.trim()) { setStudent(null); return; }
+    if (!cedula.trim()) { setStudent(null); setPendingDecision(null); setShowDecision(false); return; }
     const match = allStudents.find(
       (s) => (s as any).cedula?.toLowerCase() === cedula.trim().toLowerCase()
     );
     setStudent(match ?? null);
+    // Reset pending decision when student changes
+    setPendingDecision(null);
+    setShowDecision(false);
   }, [cedula, allStudents]);
 
   useEffect(() => { setAmount(''); setError(''); }, [method, tab, student]);
@@ -67,7 +75,11 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
   const rate = Number(bcvRate || 0);
   const partialUSD = showBs && rate > 0 && amount ? Number(amount) / rate : Number(amount || 0);
   const completeBs = showBs && rate > 0 && planPrice > 0 ? (planPrice * rate).toFixed(2) : null;
-  const remainingUSD = planPrice > 0 ? planPrice - partialUSD : 0;
+
+  const hasPending = student?.paymentStatus === 'PARTIAL' && (student?.pendingBalance ?? 0) > 0 && !!student?.currentPeriodEnd;
+  const effectivePendingBalance = hasPending ? (student!.pendingBalance ?? 0) : 0;
+  const maxUSD = pendingDecision ? effectivePendingBalance : planPrice;
+  const remainingUSD = maxUSD > 0 ? maxUSD - partialUSD : 0;
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -79,6 +91,9 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
         showBs && tab === 'partial' && amount ? `Pagado: ${Number(amount).toLocaleString('es-VE')} Bs` : '',
         notes,
       ].filter(Boolean);
+      const effectivePeriodEnd = pendingDecision && student.currentPeriodEnd
+        ? student.currentPeriodEnd
+        : calcPeriodEnd(paidAt);
       return paymentsService.create({
         studentId:     student.id,
         amount:        finalAmountUSD,
@@ -86,7 +101,7 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
         paymentType:   tab === 'full' ? 'FULL' : 'PARTIAL',
         paidAt,
         periodStart:   paidAt,
-        periodEnd:     calcPeriodEnd(paidAt),
+        periodEnd:     effectivePeriodEnd,
         paymentMethod: method,
         notes: noteParts.length ? noteParts.join(' | ') : undefined,
       });
@@ -107,13 +122,15 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
     e.preventDefault();
     setError('');
     if (!student) { setError('Ingresá una cédula válida para identificar al alumno'); return; }
+    // If student has pending balance and user hasn't decided yet, show decision modal
+    if (hasPending && !pendingDecision) { setShowDecision(true); return; }
     if (showBs && !bcvRate) { setError('Ingresá la tasa BCV para continuar'); return; }
     if (tab === 'partial') {
       if (!amount || Number(amount) <= 0) { setError('El monto debe ser mayor a 0'); return; }
-      if (planPrice > 0 && partialUSD >= planPrice) {
+      if (maxUSD > 0 && partialUSD > maxUSD + 0.01) {
         setError(showBs
-          ? `Equivale a $${partialUSD.toFixed(2)} USD, debe ser menor a $${planPrice} USD`
-          : `El monto parcial debe ser menor a $${planPrice} USD`
+          ? `Equivale a $${partialUSD.toFixed(2)} USD, máximo $${maxUSD.toFixed(2)} USD`
+          : `El monto supera el máximo de $${maxUSD.toFixed(2)} USD`
         );
         return;
       }
@@ -123,6 +140,19 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
 
   const inp = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white';
   const lbl: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 };
+
+  if (showDecision && hasPending && student) {
+    return (
+      <PendingDecisionModal
+        studentName={`${student.firstName} ${student.lastName}`}
+        pendingBalance={effectivePendingBalance}
+        planPrice={planPrice}
+        onComplete={() => { setPendingDecision('complete'); setTab('partial'); setAmount(String(effectivePendingBalance)); setShowDecision(false); }}
+        onAbono={() => { setPendingDecision('abono'); setTab('partial'); setAmount(''); setShowDecision(false); }}
+        onClose={() => setShowDecision(false)}
+      />
+    );
+  }
 
   return (
     <>
@@ -167,11 +197,22 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
                 <input type="text" value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="V-12345678" className={inp} style={{ paddingLeft: 36 }} required />
               </div>
               {cedula && (
-                <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 10, background: student ? '#f0fdf4' : '#fef2f2', border: `1px solid ${student ? '#bbf7d0' : '#fecaca'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <User style={{ width: 13, height: 13, color: student ? '#16a34a' : '#dc2626', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: student ? '#15803d' : '#dc2626' }}>
-                    {student ? `${student.firstName} ${student.lastName} · ${student.plan?.name}${planPrice ? ` · $${planPrice} USD` : ''}` : 'Alumno no encontrado'}
-                  </span>
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ padding: '8px 12px', borderRadius: 10, background: student ? '#f0fdf4' : '#fef2f2', border: `1px solid ${student ? '#bbf7d0' : '#fecaca'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <User style={{ width: 13, height: 13, color: student ? '#16a34a' : '#dc2626', flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: student ? '#15803d' : '#dc2626' }}>
+                      {student ? `${student.firstName} ${student.lastName} · ${student.plan?.name}${planPrice ? ` · $${planPrice} USD` : ''}` : 'Alumno no encontrado'}
+                    </span>
+                  </div>
+                  {student && hasPending && (
+                    <div style={{ marginTop: 5, padding: '7px 12px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <AlertCircle style={{ width: 13, height: 13, color: '#f59e0b', flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+                        Saldo pendiente: ${effectivePendingBalance.toFixed(2)} USD
+                        {pendingDecision && <span style={{ fontWeight: 400, color: '#78350f' }}> — {pendingDecision === 'complete' ? 'Completar' : 'Abonar'}</span>}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -239,7 +280,7 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
                   <label style={lbl}>{showBs ? 'Monto recibido (Bs) *' : 'Monto recibido (USD) *'}</label>
                   <input type="number" min="0.01" step="0.01" required value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder={showBs ? (completeBs ? `Máx: ${Number(completeBs).toLocaleString('es-VE')} Bs` : 'Ej: 1800') : `Máx: $${planPrice}`}
+                    placeholder={showBs ? (rate > 0 ? `Máx: ${(maxUSD * rate).toLocaleString('es-VE', { maximumFractionDigits: 2 })} Bs` : 'Ej: 1800') : `Máx: $${maxUSD.toFixed(2)}`}
                     className={inp} />
                   {showBs && amount && rate > 0 && (
                     <p style={{ marginTop: 4, fontSize: 11, color: '#6B7280' }}>
@@ -261,7 +302,7 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
               <label style={lbl}>Fecha de pago *</label>
               <input type="date" required value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inp} />
               <p style={{ marginTop: 4, fontSize: 11, color: '#9CA3AF' }}>
-                Período: {paidAt} → {calcPeriodEnd(paidAt)}
+                Período: {paidAt} → {pendingDecision && student?.currentPeriodEnd ? student.currentPeriodEnd : calcPeriodEnd(paidAt)}
               </p>
             </div>
 

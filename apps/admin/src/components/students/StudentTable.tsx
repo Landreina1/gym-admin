@@ -15,7 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
 import { weightService } from '@/services/weight.service';
 import { studentsService } from '@/services/students.service';
-import { RegisterPaymentModal } from '@/components/payments/RegisterPaymentModal';
+import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 
 const inputClass =
   'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
@@ -346,7 +346,7 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
         </form>
       </Modal>
 
-      <RegisterPaymentModal
+      <PaymentFlowModal
         student={paymentStudent}
         onClose={() => setPaymentStudent(null)}
         onSuccess={() => setToast({ message: 'Pago registrado correctamente', type: 'success' })}
