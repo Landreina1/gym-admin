@@ -15,9 +15,9 @@ import {
 import { studentsService } from '@/services/students.service';
 import { weightService } from '@/services/weight.service';
 import { bodyRecordService } from '@/services/body-record.service';
-import { paymentsService } from '@/services/payments.service';
 import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
+import { RegisterPaymentModal } from '@/components/payments/RegisterPaymentModal';
 import { formatDate, formatCurrency, GOAL_LABELS, cn } from '@/lib/utils';
 
 const inputClass = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
@@ -69,7 +69,6 @@ export default function StudentDetailPage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const [weightForm, setWeightForm] = useState({ weight: '', recordedAt: today, notes: '' });
-  const [paymentForm, setPaymentForm] = useState({ amount: '', paidAt: today, periodStart: today, periodEnd: '', paymentMethod: '', bsAmount: '', notes: '' });
 
   const { data: student, isLoading } = useQuery({ queryKey: ['student', id], queryFn: () => studentsService.getOne(id) });
   const { data: weightData } = useQuery({ queryKey: ['weight', id], queryFn: () => weightService.getByStudent(id), enabled: !!id });
@@ -87,19 +86,6 @@ export default function StudentDetailPage() {
     onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
   });
 
-  const paymentMutation = useMutation({
-    mutationFn: () => {
-      const notesStr = [paymentForm.bsAmount ? `Bs: ${paymentForm.bsAmount}` : '', paymentForm.notes].filter(Boolean).join(' | ');
-      return paymentsService.create({ studentId: id, amount: Number(paymentForm.amount), paidAt: paymentForm.paidAt, periodStart: paymentForm.periodStart, periodEnd: paymentForm.periodEnd, paymentMethod: paymentForm.paymentMethod || undefined, notes: notesStr || undefined });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['student', id] });
-      setPaymentModal(false);
-      setPaymentForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', paymentMethod: '', bsAmount: '', notes: '' });
-      setToast({ message: 'Pago registrado correctamente', type: 'success' });
-    },
-    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
-  });
 
   if (isLoading) {
     return (
@@ -150,44 +136,14 @@ export default function StudentDetailPage() {
         </form>
       </Modal>
 
-      {/* Payment modal */}
-      <Modal isOpen={paymentModal} onClose={() => setPaymentModal(false)} title="Registrar pago">
-        <form onSubmit={(e) => { e.preventDefault(); paymentMutation.mutate(); }} className="space-y-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Monto *</label>
-            <input type="number" step="0.01" required autoFocus value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))} className={inputClass} placeholder="Ej: 25" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha de pago *</label>
-            <input type="date" lang="es" required value={paymentForm.paidAt} onChange={(e) => setPaymentForm((f) => ({ ...f, paidAt: e.target.value }))} className={inputClass} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Desde *</label>
-              <input type="date" lang="es" required value={paymentForm.periodStart} onChange={(e) => setPaymentForm((f) => ({ ...f, periodStart: e.target.value }))} className={inputClass} /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Hasta *</label>
-              <input type="date" lang="es" required value={paymentForm.periodEnd} onChange={(e) => setPaymentForm((f) => ({ ...f, periodEnd: e.target.value }))} className={inputClass} /></div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Método de pago *</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['Efectivo USD','Efectivo Bs','Transferencia','Pago móvil','Otro'] as const).map((m) => (
-                <button key={m} type="button"
-                  onClick={() => setPaymentForm((f) => ({ ...f, paymentMethod: m, bsAmount: m !== 'Efectivo Bs' ? '' : f.bsAmount }))}
-                  className={cn('px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all text-left',
-                    paymentForm.paymentMethod === m ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
-                  )}>{m}</button>
-              ))}
-            </div>
-            <input type="text" required value={paymentForm.paymentMethod} readOnly className="sr-only" tabIndex={-1} />
-          </div>
-          {paymentForm.paymentMethod === 'Efectivo Bs' && (
-            <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Monto en Bs <span className="text-gray-400 font-normal">(opcional)</span></label>
-              <input type="number" step="0.01" value={paymentForm.bsAmount} onChange={(e) => setPaymentForm((f) => ({ ...f, bsAmount: e.target.value }))} className={inputClass} placeholder="Ej: 950000" /></div>
-          )}
-          <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Notas <span className="text-gray-400 font-normal">(opcional)</span></label>
-            <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))} className={inputClass} placeholder="Opcional" /></div>
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setPaymentModal(false)} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700">Cancelar</button>
-            <button type="submit" disabled={paymentMutation.isPending} className="flex-1 px-4 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium disabled:opacity-50">{paymentMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-          </div>
-        </form>
-      </Modal>
+      <RegisterPaymentModal
+        student={paymentModal && student ? { id: student.id, firstName: student.firstName, lastName: student.lastName, plan: student.plan } : null}
+        onClose={() => setPaymentModal(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['student', id] });
+          setToast({ message: 'Pago registrado correctamente', type: 'success' });
+        }}
+      />
 
       <div className="space-y-4">
 
