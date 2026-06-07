@@ -8,7 +8,9 @@ import { paymentsService } from '@/services/payments.service';
 import type { Student } from '@/types';
 
 const METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'];
-const BS_METHODS = ['Efectivo Bs', 'Pago Móvil'];
+const BS_METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo Bs'];
+
+function isBs(method: string) { return BS_METHODS.includes(method); }
 
 interface Props { onClose: () => void; onSuccess?: () => void }
 
@@ -20,15 +22,15 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
   const [cedula,     setCedula]     = useState('');
   const [student,    setStudent]    = useState<Student | null>(null);
   const [method,     setMethod]     = useState('Pago Móvil');
-  const [amount,     setAmount]     = useState('');
-  const [paidAt,     setPaidAt]     = useState(today);
   const [bcvRate,    setBcvRate]    = useState('');
   const [loadingBcv, setLoadingBcv] = useState(false);
+  const [amount,     setAmount]     = useState(''); // Bs si isBs(method), USD si no
+  const [paidAt,     setPaidAt]     = useState(today);
   const [notes,      setNotes]      = useState('');
   const [error,      setError]      = useState('');
 
-  const showBs = BS_METHODS.includes(method);
   const planPrice = student ? Number(student.plan?.price ?? 0) : 0;
+  const showBs = isBs(method);
 
   const { data: studentsData } = useQuery({
     queryKey: ['students-all'],
@@ -44,15 +46,9 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
     setStudent(match ?? null);
   }, [cedula, allStudents]);
 
-  // Reset amount when tab or student changes
-  useEffect(() => { setAmount(''); setError(''); }, [tab, student]);
+  useEffect(() => { setAmount(''); setError(''); }, [method, tab, student]);
+  useEffect(() => { if (showBs && !bcvRate) fetchBcv(); }, [showBs]);
 
-  // Fetch BCV rate when Bs method selected
-  useEffect(() => {
-    if (showBs && !bcvRate) fetchBcv();
-  }, [showBs]);
-
-  // Auto-advance paidAt → periodStart → periodEnd
   function calcPeriodEnd(from: string) {
     const d = new Date(from);
     d.setMonth(d.getMonth() + 1);
@@ -65,30 +61,28 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
       const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
       const data = await res.json();
       if (data?.promedio) setBcvRate(String(Number(data.promedio).toFixed(2)));
-    } catch {
-      // silent — user can enter manually
-    } finally {
-      setLoadingBcv(false);
-    }
+    } catch { /* silent */ } finally { setLoadingBcv(false); }
   }
 
-  const effectiveAmount = tab === 'full' ? planPrice : Number(amount || 0);
-  const amountInBs = showBs && effectiveAmount > 0 && bcvRate
-    ? (effectiveAmount * Number(bcvRate)).toFixed(2)
-    : null;
+  const rate = Number(bcvRate || 0);
+  const partialUSD = showBs && rate > 0 && amount ? Number(amount) / rate : Number(amount || 0);
+  const completeBs = showBs && rate > 0 && planPrice > 0 ? (planPrice * rate).toFixed(2) : null;
+  const remainingUSD = planPrice > 0 ? planPrice - partialUSD : 0;
 
   const mutation = useMutation({
     mutationFn: () => {
       if (!student) throw new Error('Alumno no encontrado');
-      const finalAmount = tab === 'full' ? planPrice : Number(amount);
+      const finalAmountUSD = tab === 'full' ? planPrice : partialUSD;
       const noteParts = [
         showBs && bcvRate ? `Tasa BCV: ${bcvRate} Bs/USD` : '',
+        showBs && tab === 'full' && completeBs ? `Cobrado: ${Number(completeBs).toLocaleString('es-VE')} Bs` : '',
+        showBs && tab === 'partial' && amount ? `Pagado: ${Number(amount).toLocaleString('es-VE')} Bs` : '',
         notes,
       ].filter(Boolean);
       return paymentsService.create({
         studentId:     student.id,
-        amount:        finalAmount,
-        totalAmount:   planPrice,
+        amount:        finalAmountUSD,
+        totalAmount:   planPrice || undefined,
         paymentType:   tab === 'full' ? 'FULL' : 'PARTIAL',
         paidAt,
         periodStart:   paidAt,
@@ -113,9 +107,16 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
     e.preventDefault();
     setError('');
     if (!student) { setError('Ingresá una cédula válida para identificar al alumno'); return; }
+    if (showBs && !bcvRate) { setError('Ingresá la tasa BCV para continuar'); return; }
     if (tab === 'partial') {
       if (!amount || Number(amount) <= 0) { setError('El monto debe ser mayor a 0'); return; }
-      if (planPrice > 0 && Number(amount) >= planPrice) { setError(`El monto parcial debe ser menor al total ($${planPrice})`); return; }
+      if (planPrice > 0 && partialUSD >= planPrice) {
+        setError(showBs
+          ? `Equivale a $${partialUSD.toFixed(2)} USD, debe ser menor a $${planPrice} USD`
+          : `El monto parcial debe ser menor a $${planPrice} USD`
+        );
+        return;
+      }
     }
     mutation.mutate();
   }
@@ -136,30 +137,12 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
         }
       `}</style>
 
-      <div
-        className="qpm-overlay"
-        style={{
-          position: 'fixed', inset: 0, zIndex: 50,
-          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-        }}
-        onClick={(e) => e.target === e.currentTarget && onClose()}
-      >
-        <div
-          className="qpm-card"
-          style={{
-            background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-            animation: 'qpm-in 0.2s cubic-bezier(0.22,1,0.36,1) both',
-            display: 'flex', flexDirection: 'column',
-            maxHeight: 'calc(100vh - 48px)',
-          }}
-        >
-          {/* Header — sticky */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '20px 24px', borderBottom: '1px solid #f1f5f9', flexShrink: 0,
-          }}>
+      <div className="qpm-overlay" style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        onClick={(e) => e.target === e.currentTarget && onClose()}>
+        <div className="qpm-card" style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480, boxShadow: '0 24px 64px rgba(0,0,0,0.18)', animation: 'qpm-in 0.2s cubic-bezier(0.22,1,0.36,1) both', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 48px)' }}>
+
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CreditCard style={{ width: 16, height: 16, color: '#E53935' }} />
@@ -174,10 +157,9 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
             </button>
           </div>
 
-          {/* Body — scrollable */}
           <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
 
-            {/* Cédula search */}
+            {/* Cédula */}
             <div>
               <label style={lbl}>Cédula del alumno *</label>
               <div style={{ position: 'relative' }}>
@@ -188,63 +170,25 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
                 <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 10, background: student ? '#f0fdf4' : '#fef2f2', border: `1px solid ${student ? '#bbf7d0' : '#fecaca'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <User style={{ width: 13, height: 13, color: student ? '#16a34a' : '#dc2626', flexShrink: 0 }} />
                   <span style={{ fontSize: 12, fontWeight: 600, color: student ? '#15803d' : '#dc2626' }}>
-                    {student ? `${student.firstName} ${student.lastName} · ${student.plan?.name}${planPrice ? ` · $${planPrice}` : ''}` : 'Alumno no encontrado'}
+                    {student ? `${student.firstName} ${student.lastName} · ${student.plan?.name}${planPrice ? ` · $${planPrice} USD` : ''}` : 'Alumno no encontrado'}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Tabs — only show when student found */}
+            {/* Tabs — solo si hay alumno */}
             {student && (
               <div style={{ display: 'flex', gap: 8 }}>
-                {(['full', 'partial'] as const).map((t) => {
-                  const active = tab === t;
-                  const label = t === 'full' ? 'Pago completo' : 'Pago parcial';
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTab(t)}
-                      style={{
-                        flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
-                        fontSize: 13, fontWeight: 700, transition: 'all 0.15s',
-                        background: active ? (t === 'full' ? '#E53935' : '#f59e0b') : '#f4f6f9',
-                        color: active ? '#fff' : '#6B7280',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+                {(['full', 'partial'] as const).map((t) => (
+                  <button key={t} type="button" onClick={() => setTab(t)}
+                    style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.15s', background: tab === t ? (t === 'full' ? '#E53935' : '#f59e0b') : '#f4f6f9', color: tab === t ? '#fff' : '#6B7280' }}>
+                    {t === 'full' ? 'Pago completo' : 'Pago parcial'}
+                  </button>
+                ))}
               </div>
             )}
 
-            {/* Amount */}
-            {student && (
-              tab === 'full' ? (
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: 11, color: '#15803d', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Monto a cobrar</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: '#15803d' }}>${planPrice} <span style={{ fontSize: 14, fontWeight: 600 }}>USD</span></p>
-                </div>
-              ) : (
-                <div>
-                  <label style={lbl}>Monto pagado (USD) *</label>
-                  <input
-                    type="number" min="0.01" step="0.01" required
-                    value={amount} onChange={(e) => setAmount(e.target.value)}
-                    placeholder={planPrice ? `Máx: $${planPrice}` : '0.00'} className={inp}
-                  />
-                  {amount && Number(amount) > 0 && planPrice > 0 && Number(amount) < planPrice && (
-                    <p style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>
-                      Saldo pendiente: ${(planPrice - Number(amount)).toFixed(2)} USD
-                    </p>
-                  )}
-                  {amountInBs && <p style={{ marginTop: 2, fontSize: 11, color: '#6B7280' }}>≈ {Number(amountInBs).toLocaleString('es-VE')} Bs</p>}
-                </div>
-              )
-            )}
-
-            {/* Método de pago */}
+            {/* 1. Método de pago */}
             <div>
               <label style={lbl}>Método de pago *</label>
               <select value={method} onChange={(e) => setMethod(e.target.value)} className={inp} style={{ appearance: 'auto' }}>
@@ -252,28 +196,67 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
               </select>
             </div>
 
-            {/* Tasa BCV */}
+            {/* 2. Tasa BCV — si es método Bs */}
             {showBs && (
               <div>
                 <label style={lbl}>Tasa de cambio (Bs/USD) *</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="number" step="0.01" min="0"
-                    value={bcvRate} onChange={(e) => setBcvRate(e.target.value)}
-                    placeholder="Ej: 91.45" className={inp}
-                    style={{ flex: 1 }}
-                  />
+                  <input type="number" step="0.01" min="0" value={bcvRate} onChange={(e) => setBcvRate(e.target.value)}
+                    placeholder="Ej: 91.45" className={inp} style={{ flex: 1 }} />
                   <button type="button" onClick={fetchBcv} disabled={loadingBcv} title="Actualizar tasa BCV"
                     style={{ padding: '0 12px', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6B7280', whiteSpace: 'nowrap' }}>
                     <RefreshCw style={{ width: 13, height: 13, animation: loadingBcv ? 'spin 1s linear infinite' : 'none' }} />
                     BCV
                   </button>
                 </div>
-                {tab === 'full' && amountInBs && <p style={{ marginTop: 4, fontSize: 11, color: '#6B7280' }}>≈ {Number(amountInBs).toLocaleString('es-VE')} Bs</p>}
               </div>
             )}
 
-            {/* Fecha de pago */}
+            {/* 3. Monto */}
+            {student && (
+              tab === 'full' ? (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 11, color: '#15803d', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {showBs ? 'Monto a cobrar en Bs' : 'Monto a cobrar'}
+                  </p>
+                  {showBs && completeBs ? (
+                    <>
+                      <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: '#15803d' }}>
+                        {Number(completeBs).toLocaleString('es-VE')} <span style={{ fontSize: 14, fontWeight: 600 }}>Bs</span>
+                      </p>
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: '#16a34a' }}>= ${planPrice} USD</p>
+                    </>
+                  ) : showBs ? (
+                    <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6B7280' }}>Ingresá la tasa BCV para ver el monto en Bs</p>
+                  ) : (
+                    <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: '#15803d' }}>
+                      ${planPrice} <span style={{ fontSize: 14, fontWeight: 600 }}>USD</span>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label style={lbl}>{showBs ? 'Monto recibido (Bs) *' : 'Monto recibido (USD) *'}</label>
+                  <input type="number" min="0.01" step="0.01" required value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder={showBs ? (completeBs ? `Máx: ${Number(completeBs).toLocaleString('es-VE')} Bs` : 'Ej: 1800') : `Máx: $${planPrice}`}
+                    className={inp} />
+                  {showBs && amount && rate > 0 && (
+                    <p style={{ marginTop: 4, fontSize: 11, color: '#6B7280' }}>
+                      = ${partialUSD.toFixed(2)} USD
+                      {remainingUSD > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}> · Saldo: ${remainingUSD.toFixed(2)} USD</span>}
+                    </p>
+                  )}
+                  {!showBs && amount && Number(amount) > 0 && remainingUSD > 0 && (
+                    <p style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>
+                      Saldo pendiente: ${remainingUSD.toFixed(2)} USD
+                    </p>
+                  )}
+                </div>
+              )
+            )}
+
+            {/* 4. Fecha de pago */}
             <div>
               <label style={lbl}>Fecha de pago *</label>
               <input type="date" required value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inp} />
@@ -282,7 +265,7 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
               </p>
             </div>
 
-            {/* Notas (solo pago parcial) */}
+            {/* 5. Notas (solo pago parcial) */}
             {tab === 'partial' && student && (
               <div>
                 <label style={lbl}>Notas <span style={{ fontWeight: 400, textTransform: 'none' }}>(opcional)</span></label>
@@ -296,19 +279,11 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
               </p>
             )}
 
-            {/* Actions */}
             <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
               <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
                 Cancelar
               </button>
-              <button type="submit" disabled={mutation.isPending} style={{
-                flex: 1, padding: '11px 0', borderRadius: 12, border: 'none',
-                background: tab === 'full' ? '#E53935' : '#f59e0b',
-                color: '#fff', fontSize: 13, fontWeight: 600,
-                cursor: mutation.isPending ? 'not-allowed' : 'pointer',
-                opacity: mutation.isPending ? 0.7 : 1,
-                boxShadow: `0 4px 12px ${tab === 'full' ? 'rgba(229,57,53,0.28)' : 'rgba(245,158,11,0.28)'}`,
-              }}>
+              <button type="submit" disabled={mutation.isPending} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: tab === 'full' ? '#E53935' : '#f59e0b', color: '#fff', fontSize: 13, fontWeight: 600, cursor: mutation.isPending ? 'not-allowed' : 'pointer', opacity: mutation.isPending ? 0.7 : 1, boxShadow: `0 4px 12px ${tab === 'full' ? 'rgba(229,57,53,0.28)' : 'rgba(245,158,11,0.28)'}` }}>
                 {mutation.isPending ? 'Registrando...' : tab === 'full' ? 'Registrar pago' : 'Registrar abono'}
               </button>
             </div>

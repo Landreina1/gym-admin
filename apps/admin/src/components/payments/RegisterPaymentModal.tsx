@@ -6,7 +6,9 @@ import { X, CreditCard, RefreshCw } from 'lucide-react';
 import { paymentsService } from '@/services/payments.service';
 
 const METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'];
-const BS_METHODS = ['Efectivo Bs', 'Pago Móvil'];
+const BS_METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo Bs'];
+
+function isBs(method: string) { return BS_METHODS.includes(method); }
 
 interface StudentInfo {
   id: string;
@@ -25,35 +27,31 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [tab,       setTab]       = useState<'full' | 'partial'>('full');
-  const [method,    setMethod]    = useState('Pago Móvil');
-  const [amount,    setAmount]    = useState('');
-  const [paidAt,    setPaidAt]    = useState(today);
-  const [bcvRate,   setBcvRate]   = useState('');
+  const [tab,        setTab]        = useState<'full' | 'partial'>('full');
+  const [method,     setMethod]     = useState('Pago Móvil');
+  const [bcvRate,    setBcvRate]    = useState('');
   const [loadingBcv, setLoadingBcv] = useState(false);
-  const [notes,     setNotes]     = useState('');
-  const [error,     setError]     = useState('');
+  const [amount,     setAmount]     = useState(''); // Bs if isBs(method), else USD
+  const [paidAt,     setPaidAt]     = useState(today);
+  const [notes,      setNotes]      = useState('');
+  const [error,      setError]      = useState('');
 
-  const showBs = BS_METHODS.includes(method);
   const planPrice = student ? Number(student.plan.price) : 0;
+  const showBs = isBs(method);
 
-  // Reset state when student changes or modal opens
+  // Reset on student change
   useEffect(() => {
     if (student) {
-      setTab('full');
-      setMethod('Pago Móvil');
-      setAmount('');
-      setPaidAt(today);
-      setBcvRate('');
-      setNotes('');
-      setError('');
+      setTab('full'); setMethod('Pago Móvil'); setBcvRate('');
+      setAmount(''); setPaidAt(today); setNotes(''); setError('');
     }
   }, [student]);
 
-  // Fetch BCV rate when Bs method selected
-  useEffect(() => {
-    if (showBs && !bcvRate) fetchBcv();
-  }, [showBs]);
+  // Reset amount when method or tab changes
+  useEffect(() => { setAmount(''); setError(''); }, [method, tab]);
+
+  // Auto-fetch BCV when Bs method selected
+  useEffect(() => { if (showBs && !bcvRate) fetchBcv(); }, [showBs]);
 
   async function fetchBcv() {
     setLoadingBcv(true);
@@ -61,18 +59,8 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
       const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
       const data = await res.json();
       if (data?.promedio) setBcvRate(String(Number(data.promedio).toFixed(2)));
-    } catch {
-      // silent — user can enter manually
-    } finally {
-      setLoadingBcv(false);
-    }
+    } catch { /* silent */ } finally { setLoadingBcv(false); }
   }
-
-  const effectiveAmount = tab === 'full' ? planPrice : Number(amount || 0);
-  const remaining = planPrice - effectiveAmount;
-  const amountInBs = showBs && effectiveAmount > 0 && bcvRate
-    ? (effectiveAmount * Number(bcvRate)).toFixed(2)
-    : null;
 
   function calcPeriodEnd(from: string) {
     const d = new Date(from);
@@ -80,17 +68,32 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
     return d.toISOString().slice(0, 10);
   }
 
+  // Derived values
+  const rate = Number(bcvRate || 0);
+  // For pago completo: always planPrice USD regardless of method
+  // For pago parcial: if Bs → amount is in Bs, convert to USD; if USD → amount is USD
+  const partialUSD = showBs && rate > 0 && amount
+    ? Number(amount) / rate
+    : Number(amount || 0);
+
+  const completeBs = showBs && rate > 0 ? (planPrice * rate).toFixed(2) : null;
+  const remainingUSD = planPrice > 0 ? planPrice - partialUSD : 0;
+
   const mutation = useMutation({
     mutationFn: () => {
       if (!student) throw new Error('Sin alumno');
-      const finalAmount = tab === 'full' ? planPrice : Number(amount);
+      const finalAmountUSD = tab === 'full'
+        ? planPrice
+        : partialUSD;
       const noteParts = [
         showBs && bcvRate ? `Tasa BCV: ${bcvRate} Bs/USD` : '',
+        showBs && tab === 'full' && completeBs ? `Cobrado: ${Number(completeBs).toLocaleString('es-VE')} Bs` : '',
+        showBs && tab === 'partial' && amount ? `Pagado: ${Number(amount).toLocaleString('es-VE')} Bs` : '',
         notes,
       ].filter(Boolean);
       return paymentsService.create({
         studentId:    student.id,
-        amount:       finalAmount,
+        amount:       finalAmountUSD,
         totalAmount:  planPrice,
         paymentType:  tab === 'full' ? 'FULL' : 'PARTIAL',
         paidAt,
@@ -115,9 +118,16 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    if (showBs && !bcvRate) { setError('Ingresá la tasa BCV para continuar'); return; }
     if (tab === 'partial') {
       if (!amount || Number(amount) <= 0) { setError('El monto debe ser mayor a 0'); return; }
-      if (Number(amount) >= planPrice) { setError(`El monto parcial debe ser menor al total ($${planPrice})`); return; }
+      if (planPrice > 0 && partialUSD >= planPrice) {
+        setError(showBs
+          ? `El monto en Bs equivale a $${partialUSD.toFixed(2)} USD, debe ser menor a $${planPrice} USD`
+          : `El monto parcial debe ser menor a $${planPrice} USD`
+        );
+        return;
+      }
     }
     mutation.mutate();
   }
@@ -140,38 +150,18 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
         }
       `}</style>
 
-      <div
-        className="rpm-overlay"
-        style={{
-          position: 'fixed', inset: 0, zIndex: 50,
-          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-        }}
-        onClick={(e) => e.target === e.currentTarget && onClose()}
-      >
-        <div
-          className="rpm-card"
-          style={{
-            background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-            animation: 'rpm-in 0.2s cubic-bezier(0.22,1,0.36,1) both',
-            display: 'flex', flexDirection: 'column',
-            maxHeight: 'calc(100vh - 48px)',
-          }}
-        >
+      <div className="rpm-overlay" style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        onClick={(e) => e.target === e.currentTarget && onClose()}>
+        <div className="rpm-card" style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480, boxShadow: '0 24px 64px rgba(0,0,0,0.18)', animation: 'rpm-in 0.2s cubic-bezier(0.22,1,0.36,1) both', display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 48px)' }}>
+
           {/* Header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '20px 24px', borderBottom: '1px solid #f1f5f9', flexShrink: 0,
-          }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CreditCard style={{ width: 16, height: 16, color: '#E53935' }} />
               </div>
               <div>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#121212' }}>
-                  {student.firstName} {student.lastName}
-                </p>
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#121212' }}>{student.firstName} {student.lastName}</p>
                 <p style={{ margin: 0, fontSize: 11, color: '#6B7280' }}>{student.plan.name} · ${planPrice} USD/mes</p>
               </div>
             </div>
@@ -182,55 +172,18 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
 
           {/* Tabs */}
           <div style={{ display: 'flex', padding: '12px 24px 0', gap: 8, flexShrink: 0 }}>
-            {(['full', 'partial'] as const).map((t) => {
-              const active = tab === t;
-              const label = t === 'full' ? 'Pago completo' : 'Pago parcial';
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => { setTab(t); setError(''); setAmount(''); }}
-                  style={{
-                    flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
-                    fontSize: 13, fontWeight: 700, transition: 'all 0.15s',
-                    background: active ? (t === 'full' ? '#E53935' : '#f59e0b') : '#f4f6f9',
-                    color: active ? '#fff' : '#6B7280',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
+            {(['full', 'partial'] as const).map((t) => (
+              <button key={t} type="button" onClick={() => { setTab(t); setError(''); setAmount(''); }}
+                style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.15s', background: tab === t ? (t === 'full' ? '#E53935' : '#f59e0b') : '#f4f6f9', color: tab === t ? '#fff' : '#6B7280' }}>
+                {t === 'full' ? 'Pago completo' : 'Pago parcial'}
+              </button>
+            ))}
           </div>
 
-          {/* Body */}
+          {/* Form */}
           <form onSubmit={handleSubmit} style={{ padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
 
-            {/* Amount display */}
-            {tab === 'full' ? (
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', textAlign: 'center' }}>
-                <p style={{ margin: 0, fontSize: 11, color: '#15803d', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Monto a cobrar</p>
-                <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: '#15803d' }}>${planPrice} <span style={{ fontSize: 14, fontWeight: 600 }}>USD</span></p>
-              </div>
-            ) : (
-              <div>
-                <label style={lbl}>Monto pagado (USD) *</label>
-                <input
-                  type="number" min="0.01" step="0.01" required
-                  value={amount} onChange={(e) => setAmount(e.target.value)}
-                  placeholder={`Máx: $${planPrice}`} className={inp}
-                  autoFocus
-                />
-                {amount && Number(amount) > 0 && Number(amount) < planPrice && (
-                  <p style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>
-                    Saldo pendiente: ${(planPrice - Number(amount)).toFixed(2)} USD
-                  </p>
-                )}
-                {amountInBs && <p style={{ marginTop: 2, fontSize: 11, color: '#6B7280' }}>≈ {Number(amountInBs).toLocaleString('es-VE')} Bs</p>}
-              </div>
-            )}
-
-            {/* Payment method */}
+            {/* 1. Método de pago — PRIMERO */}
             <div>
               <label style={lbl}>Método de pago *</label>
               <select value={method} onChange={(e) => setMethod(e.target.value)} className={inp} style={{ appearance: 'auto' }}>
@@ -238,29 +191,65 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
               </select>
             </div>
 
-            {/* BCV rate */}
+            {/* 2. Tasa BCV — si es método Bs */}
             {showBs && (
               <div>
                 <label style={lbl}>Tasa de cambio (Bs/USD) *</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="number" step="0.01" min="0"
-                    value={bcvRate} onChange={(e) => setBcvRate(e.target.value)}
-                    placeholder="Ej: 91.45" className={inp} style={{ flex: 1 }}
-                  />
+                  <input type="number" step="0.01" min="0" value={bcvRate} onChange={(e) => setBcvRate(e.target.value)}
+                    placeholder="Ej: 91.45" className={inp} style={{ flex: 1 }} />
                   <button type="button" onClick={fetchBcv} disabled={loadingBcv} title="Actualizar tasa BCV"
                     style={{ padding: '0 12px', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6B7280', whiteSpace: 'nowrap' }}>
                     <RefreshCw style={{ width: 13, height: 13, animation: loadingBcv ? 'spin 1s linear infinite' : 'none' }} />
                     BCV
                   </button>
                 </div>
-                {tab === 'full' && amountInBs && (
-                  <p style={{ marginTop: 4, fontSize: 11, color: '#6B7280' }}>≈ {Number(amountInBs).toLocaleString('es-VE')} Bs</p>
+              </div>
+            )}
+
+            {/* 3. Monto — depende de tab y método */}
+            {tab === 'full' ? (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 16px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 11, color: '#15803d', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {showBs ? 'Monto a cobrar en Bs' : 'Monto a cobrar'}
+                </p>
+                {showBs && completeBs ? (
+                  <>
+                    <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: '#15803d' }}>
+                      {Number(completeBs).toLocaleString('es-VE')} <span style={{ fontSize: 14, fontWeight: 600 }}>Bs</span>
+                    </p>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: '#16a34a' }}>= ${planPrice} USD</p>
+                  </>
+                ) : showBs ? (
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6B7280' }}>Ingresá la tasa BCV para ver el monto en Bs</p>
+                ) : (
+                  <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: '#15803d' }}>
+                    ${planPrice} <span style={{ fontSize: 14, fontWeight: 600 }}>USD</span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label style={lbl}>{showBs ? 'Monto recibido (Bs) *' : 'Monto recibido (USD) *'}</label>
+                <input type="number" min="0.01" step="0.01" required value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={showBs ? (completeBs ? `Máx: ${Number(completeBs).toLocaleString('es-VE')} Bs` : 'Ej: 1800') : `Máx: $${planPrice}`}
+                  className={inp} autoFocus />
+                {showBs && amount && rate > 0 && (
+                  <p style={{ marginTop: 4, fontSize: 11, color: '#6B7280' }}>
+                    = ${partialUSD.toFixed(2)} USD
+                    {remainingUSD > 0 && <span style={{ color: '#f59e0b', fontWeight: 700 }}> · Saldo: ${remainingUSD.toFixed(2)} USD</span>}
+                  </p>
+                )}
+                {!showBs && amount && Number(amount) > 0 && remainingUSD > 0 && (
+                  <p style={{ marginTop: 4, fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>
+                    Saldo pendiente: ${remainingUSD.toFixed(2)} USD
+                  </p>
                 )}
               </div>
             )}
 
-            {/* Payment date */}
+            {/* 4. Fecha de pago */}
             <div>
               <label style={lbl}>Fecha de pago *</label>
               <input type="date" required value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inp} />
@@ -269,7 +258,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
               </p>
             </div>
 
-            {/* Notes (partial only) */}
+            {/* 5. Notas (solo pago parcial) */}
             {tab === 'partial' && (
               <div>
                 <label style={lbl}>Notas <span style={{ fontWeight: 400, textTransform: 'none' }}>(opcional)</span></label>
@@ -287,14 +276,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess }: Props) {
               <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
                 Cancelar
               </button>
-              <button type="submit" disabled={mutation.isPending} style={{
-                flex: 1, padding: '11px 0', borderRadius: 12, border: 'none',
-                background: tab === 'full' ? '#E53935' : '#f59e0b',
-                color: '#fff', fontSize: 13, fontWeight: 600,
-                cursor: mutation.isPending ? 'not-allowed' : 'pointer',
-                opacity: mutation.isPending ? 0.7 : 1,
-                boxShadow: `0 4px 12px ${tab === 'full' ? 'rgba(229,57,53,0.28)' : 'rgba(245,158,11,0.28)'}`,
-              }}>
+              <button type="submit" disabled={mutation.isPending} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: tab === 'full' ? '#E53935' : '#f59e0b', color: '#fff', fontSize: 13, fontWeight: 600, cursor: mutation.isPending ? 'not-allowed' : 'pointer', opacity: mutation.isPending ? 0.7 : 1, boxShadow: `0 4px 12px ${tab === 'full' ? 'rgba(229,57,53,0.28)' : 'rgba(245,158,11,0.28)'}` }}>
                 {mutation.isPending ? 'Registrando...' : tab === 'full' ? 'Registrar pago' : 'Registrar abono'}
               </button>
             </div>
