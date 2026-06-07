@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RegisterPaymentModal } from './RegisterPaymentModal';
 import { PendingDecisionModal } from './PendingDecisionModal';
 
@@ -25,6 +25,12 @@ type DecisionMode = 'complete' | 'abono';
 export function PaymentFlowModal({ student, onClose, onSuccess }: Props) {
   const [step, setStep] = useState<'decision' | 'payment'>('decision');
   const [decisionMode, setDecisionMode] = useState<DecisionMode | null>(null);
+
+  // Reset to decision step every time the modal opens (student changes)
+  useEffect(() => {
+    setStep('decision');
+    setDecisionMode(null);
+  }, [student?.id]);
 
   if (!student) return null;
 
