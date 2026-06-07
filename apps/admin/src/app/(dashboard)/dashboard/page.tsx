@@ -326,7 +326,7 @@ export default function DashboardPage() {
             icon={<Calendar style={{ width: 15, height: 15, color: '#d97706' }} />}
             iconBg="#fffbeb"
             title="Pagos próximos a vencer"
-            sub="Próximos 7 días"
+            sub="Próximos 3 días"
             action={
               <Link href="/students" style={{
                 fontSize: 11, fontWeight: 600, color: 'var(--brand-600)',
@@ -353,7 +353,7 @@ export default function DashboardPage() {
                 ¡Todo al día!
               </p>
               <p style={{ margin: '0 0 20px', fontSize: 12, color: 'var(--text-muted)', maxWidth: 220 }}>
-                No hay pagos próximos a vencer en los próximos 7 días.
+                No hay pagos próximos a vencer en los próximos 3 días.
               </p>
               <button onClick={() => setPayModal(true)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
