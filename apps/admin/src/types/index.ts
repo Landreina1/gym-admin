@@ -1,6 +1,7 @@
 export type StudentGoal = 'LOSE_WEIGHT' | 'GAIN_WEIGHT' | 'MAINTAIN';
 export type StudentStatus = 'ACTIVE' | 'INACTIVE';
 export type PaymentStatus = 'PAID' | 'OVERDUE' | 'PENDING';
+export type PaymentType = 'FULL' | 'PARTIAL';
 export type NotificationType = 'PAYMENT_DUE' | 'PAYMENT_OVERDUE' | 'HOLIDAY' | 'ADMIN_NOTICE';
 export type NotificationStatus = 'PENDING' | 'SCHEDULED' | 'SENT' | 'CANCELLED';
 
@@ -32,6 +33,7 @@ export interface Student {
   planId: string;
   plan: Plan;
   isOverdue?: boolean;
+  paymentStatus?: 'UP_TO_DATE' | 'PARTIAL' | 'OVERDUE';
   nextDueDate?: string;
   weightRecords?: WeightRecord[];
   payments?: Payment[];
@@ -49,6 +51,8 @@ export interface Payment {
   id: string;
   studentId: string;
   amount: number;
+  totalAmount?: number;
+  paymentType?: PaymentType;
   paidAt: string;
   periodStart: string;
   periodEnd: string;
@@ -63,7 +67,7 @@ export interface StudentForPayments {
   lastName: string;
   plan: Plan;
   billingDay: number;
-  paymentStatus: 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE';
+  paymentStatus: 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE' | 'PARTIAL';
   nextDueDate: string | null;
   lastPayment: {
     id: string;

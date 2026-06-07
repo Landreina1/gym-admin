@@ -1,34 +1,23 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle, Clock, TrendingUp, DollarSign, Plus,
-  Search, ChevronRight, Wallet, Smartphone, Building2, CircleDollarSign,
+  Search, ChevronRight, Wallet,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, PieChart, Pie, Cell, Legend, LabelList,
+  Tooltip, PieChart, Pie, Cell, LabelList,
 } from 'recharts';
 import { paymentsService } from '@/services/payments.service';
-import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
+import { RegisterPaymentModal } from '@/components/payments/RegisterPaymentModal';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import type { StudentForPayments } from '@/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const inputClass =
-  'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
-
-const PAYMENT_METHODS = [
-  { id: 'Efectivo USD', icon: <DollarSign className="w-3.5 h-3.5" />, color: 'emerald' },
-  { id: 'Efectivo Bs',  icon: <CircleDollarSign className="w-3.5 h-3.5" />, color: 'yellow' },
-  { id: 'Transferencia', icon: <Building2 className="w-3.5 h-3.5" />, color: 'blue' },
-  { id: 'Pago móvil',  icon: <Smartphone className="w-3.5 h-3.5" />, color: 'purple' },
-  { id: 'Otro',        icon: <Wallet className="w-3.5 h-3.5" />, color: 'gray' },
-] as const;
 
 const METHOD_COLOR: Record<string, string> = {
   'Efectivo USD': '#10b981',
@@ -72,6 +61,7 @@ function KpiCard({ icon, label, value, sub, color }: {
 function StatusBadge({ status }: { status: StudentForPayments['paymentStatus'] }) {
   if (status === 'OVERDUE')  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><AlertTriangle className="w-3 h-3" />En mora</span>;
   if (status === 'DUE_SOON') return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"><Clock className="w-3 h-3" />Próx. venc.</span>;
+  if (status === 'PARTIAL')  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700"><Clock className="w-3 h-3" />Pago parcial</span>;
   return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"><TrendingUp className="w-3 h-3" />Al día</span>;
 }
 
@@ -99,15 +89,6 @@ export default function PaymentsPage() {
   const [showCharts, setShowCharts] = useState(true);
 
   const today = new Date().toISOString().slice(0, 10);
-  const [form, setForm] = useState({
-    amount: '',
-    paidAt: today,
-    periodStart: today,
-    periodEnd: '',
-    paymentMethod: '',
-    bsAmount: '',
-    notes: '',
-  });
 
   const { data: students = [], isLoading: loadingStudents } = useQuery({
     queryKey: ['payments-all-students'],
@@ -119,37 +100,7 @@ export default function PaymentsPage() {
     queryFn: paymentsService.getStats,
   });
 
-  const mutation = useMutation({
-    mutationFn: () => {
-      const notesStr = [
-        form.bsAmount ? `Bs: ${form.bsAmount}` : '',
-        form.notes,
-      ].filter(Boolean).join(' | ');
-      return paymentsService.create({
-        studentId: selectedStudent!.id,
-        amount: Number(form.amount),
-        paidAt: form.paidAt,
-        periodStart: form.periodStart,
-        periodEnd: form.periodEnd,
-        paymentMethod: form.paymentMethod || undefined,
-        notes: notesStr || undefined,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments-all-students'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      setSelectedStudent(null);
-      setForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', paymentMethod: '', bsAmount: '', notes: '' });
-      setToast({ message: 'Pago registrado correctamente', type: 'success' });
-    },
-    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
-  });
-
-  const openModal = (s: StudentForPayments) => {
-    setSelectedStudent(s);
-    setForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', paymentMethod: '', bsAmount: '', notes: '' });
-  };
+  const openModal = (s: StudentForPayments) => setSelectedStudent(s);
 
   // Unique plans for filter
   const plans = useMemo(() => {
@@ -185,107 +136,11 @@ export default function PaymentsPage() {
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* ── Register Payment Modal ── */}
-      <Modal
-        isOpen={!!selectedStudent}
+      <RegisterPaymentModal
+        student={selectedStudent}
         onClose={() => setSelectedStudent(null)}
-        title={`Registrar pago — ${selectedStudent?.firstName} ${selectedStudent?.lastName}`}
-      >
-        <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-4">
-
-          {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Monto *</label>
-            <input type="number" step="0.01" required value={form.amount}
-              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-              className={inputClass} placeholder="Ej: 25" autoFocus />
-          </div>
-
-          {/* Dates */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha de pago *</label>
-            <input type="date" lang="es" required value={form.paidAt}
-              onChange={(e) => setForm((f) => ({ ...f, paidAt: e.target.value }))}
-              className={inputClass} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Desde *</label>
-              <input type="date" lang="es" required value={form.periodStart}
-                onChange={(e) => setForm((f) => ({ ...f, periodStart: e.target.value }))}
-                className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Hasta *</label>
-              <input type="date" lang="es" required value={form.periodEnd}
-                onChange={(e) => setForm((f) => ({ ...f, periodEnd: e.target.value }))}
-                className={inputClass} />
-            </div>
-          </div>
-
-          {/* Payment method chips */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Método de pago *
-            </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {PAYMENT_METHODS.map((m) => {
-                const colors: Record<string, string> = {
-                  emerald: 'border-emerald-500 bg-emerald-50 text-emerald-700',
-                  yellow:  'border-amber-500 bg-amber-50 text-amber-700',
-                  blue:    'border-blue-500 bg-blue-50 text-blue-700',
-                  purple:  'border-purple-500 bg-purple-50 text-purple-700',
-                  gray:    'border-gray-400 bg-gray-100 text-gray-700',
-                };
-                const isSelected = form.paymentMethod === m.id;
-                return (
-                  <button key={m.id} type="button"
-                    onClick={() => setForm((f) => ({ ...f, paymentMethod: m.id, bsAmount: m.id !== 'Efectivo Bs' ? '' : f.bsAmount }))}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all',
-                      isSelected ? colors[m.color] : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50',
-                    )}
-                  >
-                    {m.icon}
-                    <span className="truncate">{m.id}</span>
-                  </button>
-                );
-              })}
-            </div>
-            {/* Hidden required input to enforce selection */}
-            <input type="text" required value={form.paymentMethod} readOnly className="sr-only" tabIndex={-1} />
-          </div>
-
-          {/* Bs amount (only for Efectivo Bs) */}
-          {form.paymentMethod === 'Efectivo Bs' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Monto en Bs <span className="text-gray-400 font-normal">(opcional)</span></label>
-              <input type="number" step="0.01" value={form.bsAmount}
-                onChange={(e) => setForm((f) => ({ ...f, bsAmount: e.target.value }))}
-                className={inputClass} placeholder="Ej: 950000" />
-            </div>
-          )}
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Notas <span className="text-gray-400 font-normal">(opcional)</span></label>
-            <input type="text" value={form.notes}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              className={inputClass} placeholder="Ej: Pago adelantado" />
-          </div>
-
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setSelectedStudent(null)}
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Cancelar
-            </button>
-            <button type="submit" disabled={mutation.isPending}
-              className="flex-1 px-4 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
-              {mutation.isPending ? 'Guardando...' : 'Guardar pago'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onSuccess={() => setToast({ message: 'Pago registrado correctamente', type: 'success' })}
+      />
 
       <div className="space-y-5">
 

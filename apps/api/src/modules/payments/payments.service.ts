@@ -138,7 +138,7 @@ export class PaymentsService {
 
     return students.map((s) => {
       const lastPmt = s.payments[0] ?? null;
-      let paymentStatus: 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE' = 'OVERDUE';
+      let paymentStatus: 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE' | 'PARTIAL' = 'OVERDUE';
       let nextDueDate: string | null = null;
 
       if (lastPmt) {
@@ -146,6 +146,7 @@ export class PaymentsService {
         const msLeft = lastPmt.periodEnd.getTime() - today.getTime();
         const daysLeft = msLeft / (1000 * 60 * 60 * 24);
         if (msLeft < 0) paymentStatus = 'OVERDUE';
+        else if (lastPmt.paymentType === 'PARTIAL') paymentStatus = 'PARTIAL';
         else if (daysLeft <= 7) paymentStatus = 'DUE_SOON';
         else paymentStatus = 'UP_TO_DATE';
       }

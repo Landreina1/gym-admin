@@ -234,9 +234,12 @@ export default function LoginPage() {
         .lf-eye {
           position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
           background: none; border: none; cursor: pointer; color: #9CA3AF;
-          display: flex; align-items: center; padding: 0;
+          display: flex; align-items: center; padding: 4px; z-index: 2;
         }
         .lf-eye:hover { color: #6B7280; }
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear { display: none; }
+        input::-webkit-credentials-auto-fill-button { visibility: hidden; }
 
         /* ── Alerts ── */
         .lf-error {

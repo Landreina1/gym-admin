@@ -5,6 +5,8 @@ export const paymentsService = {
   create: async (data: {
     studentId: string;
     amount: number;
+    totalAmount?: number;
+    paymentType?: 'FULL' | 'PARTIAL';
     paidAt: string;
     periodStart: string;
     periodEnd: string;

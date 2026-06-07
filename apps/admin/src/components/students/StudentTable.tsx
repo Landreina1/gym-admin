@@ -14,8 +14,8 @@ import { formatDate, cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
 import { weightService } from '@/services/weight.service';
-import { paymentsService } from '@/services/payments.service';
 import { studentsService } from '@/services/students.service';
+import { RegisterPaymentModal } from '@/components/payments/RegisterPaymentModal';
 
 const inputClass =
   'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
@@ -158,12 +158,19 @@ function StudentCard({ student, onWeight, onPayment, onDelete, onSuspend }: {
           {student.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
         </span>
         {/* Pago */}
-        <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-          student.isOverdue ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700',
-        )}>
-          <span className={cn('w-1.5 h-1.5 rounded-full', student.isOverdue ? 'bg-red-500' : 'bg-emerald-500')} />
-          {student.isOverdue ? 'En mora' : 'Al día'}
-        </span>
+        {student.paymentStatus === 'PARTIAL' ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Pago parcial
+          </span>
+        ) : (
+          <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
+            student.isOverdue ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700',
+          )}>
+            <span className={cn('w-1.5 h-1.5 rounded-full', student.isOverdue ? 'bg-red-500' : 'bg-emerald-500')} />
+            {student.isOverdue ? 'En mora' : 'Al día'}
+          </span>
+        )}
       </div>
 
       {/* Weight + due date row */}
@@ -227,7 +234,6 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
   const [deleteStudent, setDeleteStudent] = useState<Student | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [weightForm, setWeightForm] = useState({ weight: '', recordedAt: today, notes: '' });
-  const [paymentForm, setPaymentForm] = useState({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' });
 
   const weightMutation = useMutation({
     mutationFn: () => weightService.create({ studentId: weightStudent!.id, weight: Number(weightForm.weight), recordedAt: weightForm.recordedAt, notes: weightForm.notes || undefined }),
@@ -236,17 +242,6 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
       setWeightStudent(null);
       setWeightForm({ weight: '', recordedAt: today, notes: '' });
       setToast({ message: 'Peso registrado correctamente', type: 'success' });
-    },
-    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
-  });
-
-  const paymentMutation = useMutation({
-    mutationFn: () => paymentsService.create({ studentId: paymentStudent!.id, amount: Number(paymentForm.amount), paidAt: paymentForm.paidAt, periodStart: paymentForm.periodStart, periodEnd: paymentForm.periodEnd, notes: paymentForm.notes || undefined }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      setPaymentStudent(null);
-      setPaymentForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' });
-      setToast({ message: 'Pago registrado correctamente', type: 'success' });
     },
     onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
   });
@@ -272,7 +267,7 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
   });
 
   function openWeight(s: Student) { setWeightForm({ weight: '', recordedAt: today, notes: '' }); setWeightStudent(s); }
-  function openPayment(s: Student) { setPaymentForm({ amount: '', paidAt: today, periodStart: today, periodEnd: '', notes: '' }); setPaymentStudent(s); }
+  function openPayment(s: Student) { setPaymentStudent(s); }
   function handleSuspend(s: Student) { suspendMutation.mutate({ id: s.id, newStatus: s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }); }
 
   if (isLoading) {
@@ -351,37 +346,11 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
         </form>
       </Modal>
 
-      {/* ── Payment modal ── */}
-      <Modal isOpen={!!paymentStudent} onClose={() => setPaymentStudent(null)} title={`Registrar pago — ${paymentStudent?.firstName} ${paymentStudent?.lastName}`}>
-        <form onSubmit={(e) => { e.preventDefault(); paymentMutation.mutate(); }} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Monto *</label>
-            <input type="number" step="0.01" required autoFocus value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))} className={inputClass} placeholder="Ej: 15000" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha de pago *</label>
-            <input type="date" lang="es" required value={paymentForm.paidAt} onChange={(e) => setPaymentForm((f) => ({ ...f, paidAt: e.target.value }))} className={inputClass} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Desde *</label>
-              <input type="date" lang="es" required value={paymentForm.periodStart} onChange={(e) => setPaymentForm((f) => ({ ...f, periodStart: e.target.value }))} className={inputClass} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Hasta *</label>
-              <input type="date" lang="es" required value={paymentForm.periodEnd} onChange={(e) => setPaymentForm((f) => ({ ...f, periodEnd: e.target.value }))} className={inputClass} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Notas</label>
-            <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))} className={inputClass} placeholder="Opcional" />
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setPaymentStudent(null)} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
-            <button type="submit" disabled={paymentMutation.isPending} className="flex-1 px-4 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50">{paymentMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-          </div>
-        </form>
-      </Modal>
+      <RegisterPaymentModal
+        student={paymentStudent}
+        onClose={() => setPaymentStudent(null)}
+        onSuccess={() => setToast({ message: 'Pago registrado correctamente', type: 'success' })}
+      />
 
       {/* ── Mobile: cards ── */}
       <div className="md:hidden space-y-3">
@@ -432,10 +401,17 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', student.isOverdue ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700')}>
-                        <span className={cn('w-1.5 h-1.5 rounded-full', student.isOverdue ? 'bg-red-500' : 'bg-emerald-500')} />
-                        {student.isOverdue ? 'En mora' : 'Al día'}
-                      </span>
+                      {student.paymentStatus === 'PARTIAL' ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          Pago parcial
+                        </span>
+                      ) : (
+                        <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', student.isOverdue ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700')}>
+                          <span className={cn('w-1.5 h-1.5 rounded-full', student.isOverdue ? 'bg-red-500' : 'bg-emerald-500')} />
+                          {student.isOverdue ? 'En mora' : 'Al día'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4"><span className="text-sm text-gray-500">{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span></td>
                     <td className="px-3 py-4">

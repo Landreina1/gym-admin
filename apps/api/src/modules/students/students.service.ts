@@ -42,6 +42,7 @@ export class StudentsService {
         include: {
           plan: true,
           weightRecords: { orderBy: { recordedAt: 'desc' }, take: 2 },
+          payments: { orderBy: { paidAt: 'desc' }, take: 1 },
         },
         orderBy: { lastName: 'asc' },
         skip,
@@ -91,25 +92,36 @@ export class StudentsService {
     return this.prisma.student.delete({ where: { id } });
   }
 
-  // Calcula si el alumno está en mora según día de cobro y último pago
   private withPaymentStatus(student: any) {
     const today = new Date();
     const lastPayment = student.payments?.[0];
     let isOverdue = false;
+    let paymentStatus: 'UP_TO_DATE' | 'PARTIAL' | 'OVERDUE' = 'OVERDUE';
     let nextDueDate: Date | null = null;
 
     if (lastPayment) {
       nextDueDate = new Date(lastPayment.periodEnd);
-      isOverdue = nextDueDate < today;
+      if (nextDueDate >= today) {
+        if (lastPayment.paymentType === 'PARTIAL') {
+          paymentStatus = 'PARTIAL';
+          isOverdue = true; // still owes balance
+        } else {
+          paymentStatus = 'UP_TO_DATE';
+          isOverdue = false;
+        }
+      } else {
+        paymentStatus = 'OVERDUE';
+        isOverdue = true;
+      }
     } else {
-      // Sin pagos: calcular desde joinDate + billingDay
       const due = new Date(student.joinDate);
       due.setDate(student.billingDay);
       if (due < student.joinDate) due.setMonth(due.getMonth() + 1);
       nextDueDate = due;
       isOverdue = due < today;
+      paymentStatus = 'OVERDUE';
     }
 
-    return { ...student, isOverdue, nextDueDate };
+    return { ...student, isOverdue, paymentStatus, nextDueDate };
   }
 }

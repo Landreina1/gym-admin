@@ -143,6 +143,8 @@ model Payment {
   studentId     String
   student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   amount        Decimal       @db.Decimal(10, 2)
+  totalAmount   Decimal?      @db.Decimal(10, 2)
+  paymentType   PaymentType   @default(FULL)
   paidAt        DateTime
   periodStart   DateTime
   periodEnd     DateTime
@@ -159,6 +161,11 @@ enum PaymentStatus {
   PAID
   OVERDUE
   PENDING
+}
+
+enum PaymentType {
+  FULL
+  PARTIAL
 }
 
 // ─── Notifications ─────────────────────────────────────────────────────
