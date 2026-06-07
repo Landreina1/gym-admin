@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, CreditCard, User, Pencil, Plus,
-  Calendar, AlertTriangle, CheckCircle, Clock,
+  Calendar, AlertTriangle, CheckCircle, Clock, ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import { studentsService } from '@/services/students.service';
@@ -52,6 +52,15 @@ export default function StudentDetailPage() {
 
   const [paymentModal, setPaymentModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [histTab, setHistTab] = useState<'payments' | 'periods'>('periods');
+  const [expandedPeriods, setExpandedPeriods] = useState<Set<string>>(new Set());
+
+  const togglePeriod = (key: string) =>
+    setExpandedPeriods((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
 
   /* Commented out: registrar peso modal state + mutation
   const today = new Date().toISOString().slice(0, 10);
@@ -88,13 +97,12 @@ export default function StudentDetailPage() {
   const planPrice = Number(student.plan?.price ?? 0);
   const pendingBalance = student.pendingBalance ?? 0;
 
-  // Current period payments
-  const currentPmts = student.currentPeriodEnd
-    ? (student.payments ?? []).filter((p) => p.periodEnd?.slice(0, 10) === student.currentPeriodEnd)
-    : [];
-  const totalPaidCurrentPeriod = currentPmts.reduce((s, p) => s + Number(p.amount), 0);
+  // Flat payments sorted newest first (for "Pagos" tab)
+  const allPayments = [...(student.payments ?? [])].sort(
+    (a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime(),
+  );
 
-  // Payment history grouped by period
+  // Payments grouped by period (for "Períodos" tab)
   const groups = new Map<string, NonNullable<typeof student.payments>>();
   (student.payments ?? []).forEach((p) => {
     const key = p.periodEnd?.slice(0, 10) ?? 'unknown';
@@ -200,121 +208,129 @@ export default function StudentDetailPage() {
           {/* LEFT */}
           <div className="space-y-4">
 
-            {/* ── Estado financiero mes actual ── */}
-            {student.currentPeriodEnd && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <CreditCard className="w-4 h-4 text-gray-400" />
-                  <h2 className="text-sm font-semibold text-gray-900">Estado financiero — período actual</h2>
-                  <span className="ml-auto text-xs text-gray-400">hasta {formatDate(student.currentPeriodEnd)}</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                  {([
-                    ['Mensualidad', `$${planPrice.toFixed(2)} USD`, 'text-gray-900'],
-                    ['Total abonado', formatCurrency(totalPaidCurrentPeriod), 'text-emerald-600'],
-                    ['Saldo pendiente', `$${pendingBalance.toFixed(2)} USD`, pendingBalance > 0 ? 'text-amber-600' : 'text-emerald-600'],
-                    ['Estado', student.paymentStatus === 'UP_TO_DATE' ? 'Al día' : student.paymentStatus === 'PARTIAL' ? 'Parcial' : 'En mora',
-                      student.paymentStatus === 'UP_TO_DATE' ? 'text-emerald-600' : student.paymentStatus === 'PARTIAL' ? 'text-amber-600' : 'text-red-600'],
-                  ] as [string, string, string][]).map(([label, value, color]) => (
-                    <div key={label} className="bg-gray-50 rounded-xl p-3">
-                      <p className="text-xs text-gray-400 mb-1">{label}</p>
-                      <p className={cn('text-sm font-bold', color)}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-                {/* Progress bar */}
-                {planPrice > 0 && (
-                  <div>
-                    <div className="flex justify-between text-xs text-gray-400 mb-1">
-                      <span>Progreso de pago</span>
-                      <span>{Math.min(100, Math.round((totalPaidCurrentPeriod / planPrice) * 100))}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${Math.min(100, (totalPaidCurrentPeriod / planPrice) * 100)}%`,
-                          background: pendingBalance > 0 ? '#f59e0b' : '#10b981',
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {/* Abonos del período */}
-                {currentPmts.length > 0 && (
-                  <div className="mt-4 space-y-1.5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Abonos registrados</p>
-                    {currentPmts.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
-                        <div>
-                          <p className="text-xs font-medium text-gray-700">{formatDate(p.paidAt)}</p>
-                          {p.paymentMethod && <p className="text-xs text-gray-400">{p.paymentMethod}</p>}
-                          {p.notes && <p className="text-xs text-gray-400 truncate max-w-[200px]">{p.notes}</p>}
-                        </div>
-                        <span className="text-sm font-bold text-emerald-600">+{formatCurrency(p.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Historial de pagos ── */}
+            {/* ── Historial (tabbed) ── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-4 md:px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <h2 className="text-sm font-semibold text-gray-900">Historial de pagos</h2>
-              </div>
-              {sortedGroups.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <CreditCard className="w-8 h-8 text-gray-200 mb-2" />
-                  <p className="text-sm text-gray-400">Sin pagos registrados aún</p>
-                  <button onClick={() => setPaymentModal(true)} className="mt-3 text-xs text-brand-600 font-semibold">+ Registrar pago</button>
+
+              {/* Tab header */}
+              <div className="px-4 md:px-5 pt-4 border-b border-gray-100 flex items-center gap-4">
+                <div className="flex items-center gap-2 mr-2">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm font-semibold text-gray-900">Historial</span>
                 </div>
-              ) : (
-                <div className="divide-y divide-gray-50">
-                  {sortedGroups.map(([periodEnd, pmts]) => {
-                    const totalPaid = pmts.reduce((s, p) => s + Number(p.amount), 0);
-                    const totalAmount = Number(pmts[0].totalAmount ?? pmts[0].amount);
-                    const isComplete = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
-                    return (
-                      <div key={periodEnd} className="px-4 md:px-5 py-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-gray-600">Hasta {formatDate(periodEnd)}</span>
-                            {pmts.length > 1 && (
-                              <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-                                {pmts.length} abonos
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-gray-800">{formatCurrency(totalPaid)}</span>
-                            <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',
-                              isComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
-                            )}>
-                              {isComplete ? 'Completo' : `Pendiente $${(totalAmount - totalPaid).toFixed(2)}`}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="space-y-1 pl-2 border-l-2 border-gray-100">
-                          {pmts.map((p) => (
-                            <div key={p.id} className="flex items-center justify-between py-1">
-                              <div className="flex items-center gap-3">
-                                <div>
-                                  <p className="text-xs font-medium text-gray-700">{formatDate(p.paidAt)}</p>
-                                  <p className="text-xs text-gray-400">{p.paymentMethod ?? '—'}</p>
+                {(['periods', 'payments'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setHistTab(tab)}
+                    className={cn(
+                      'pb-3 text-sm font-medium border-b-2 transition-colors',
+                      histTab === tab
+                        ? 'border-brand-600 text-brand-600'
+                        : 'border-transparent text-gray-400 hover:text-gray-600',
+                    )}
+                  >
+                    {tab === 'periods' ? 'Períodos' : 'Pagos'}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Tab: Períodos ── */}
+              {histTab === 'periods' && (
+                <>
+                  {sortedGroups.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <CreditCard className="w-8 h-8 text-gray-200 mb-2" />
+                      <p className="text-sm text-gray-400">Sin pagos registrados aún</p>
+                      <button onClick={() => setPaymentModal(true)} className="mt-3 text-xs text-brand-600 font-semibold">+ Registrar pago</button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {sortedGroups.map(([periodEnd, pmts]) => {
+                        const totalPaid = pmts.reduce((s, p) => s + Number(p.amount), 0);
+                        const totalAmount = Number(pmts[0].totalAmount ?? pmts[0].amount);
+                        const isComplete = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
+                        const isExpandable = pmts.length > 1 || !isComplete;
+                        const isExpanded = expandedPeriods.has(periodEnd);
+                        return (
+                          <div key={periodEnd}>
+                            {/* Period row */}
+                            <div
+                              className={cn('px-4 md:px-5 py-3.5 flex items-center gap-3', isExpandable && 'cursor-pointer hover:bg-gray-50 transition-colors')}
+                              onClick={() => isExpandable && togglePeriod(periodEnd)}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-semibold text-gray-700">Hasta {formatDate(periodEnd)}</span>
+                                  {pmts.length > 1 && (
+                                    <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                                      {pmts.length} abonos
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              <span className="text-xs font-semibold text-emerald-600">+{formatCurrency(p.amount)}</span>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-sm font-bold text-gray-800">{formatCurrency(totalPaid)}</span>
+                                <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',
+                                  isComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+                                )}>
+                                  {isComplete ? 'Completo' : `Pendiente $${(totalAmount - totalPaid).toFixed(2)}`}
+                                </span>
+                                {isExpandable && (
+                                  <ChevronDown className={cn('w-4 h-4 text-gray-400 transition-transform', isExpanded && 'rotate-180')} />
+                                )}
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                            {/* Collapsible abonos */}
+                            {isExpandable && isExpanded && (
+                              <div className="px-4 md:px-5 pb-3 space-y-1.5">
+                                {pmts.map((p) => (
+                                  <div key={p.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl">
+                                    <div>
+                                      <p className="text-xs font-medium text-gray-700">{formatDate(p.paidAt)}</p>
+                                      <p className="text-xs text-gray-400">{p.paymentMethod ?? '—'}</p>
+                                      {p.notes && <p className="text-xs text-gray-400 truncate max-w-[220px]">{p.notes}</p>}
+                                    </div>
+                                    <span className="text-sm font-bold text-emerald-600">+{formatCurrency(p.amount)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
+
+              {/* ── Tab: Pagos ── */}
+              {histTab === 'payments' && (
+                <>
+                  {allPayments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <CreditCard className="w-8 h-8 text-gray-200 mb-2" />
+                      <p className="text-sm text-gray-400">Sin pagos registrados aún</p>
+                      <button onClick={() => setPaymentModal(true)} className="mt-3 text-xs text-brand-600 font-semibold">+ Registrar pago</button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-50">
+                      {allPayments.map((p) => (
+                        <div key={p.id} className="px-4 md:px-5 py-3 flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-800">{formatDate(p.paidAt)}</p>
+                            <p className="text-xs text-gray-400">
+                              {p.paymentMethod ?? '—'}
+                              {p.periodEnd && <> · período hasta {formatDate(p.periodEnd)}</>}
+                            </p>
+                            {p.notes && <p className="text-xs text-gray-400 truncate max-w-[260px]">{p.notes}</p>}
+                          </div>
+                          <span className="text-sm font-bold text-emerald-600 flex-shrink-0">+{formatCurrency(p.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
             </div>
           </div>
 
