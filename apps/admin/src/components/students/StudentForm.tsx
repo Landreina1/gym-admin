@@ -162,7 +162,7 @@ export function StudentForm({ student }: StudentFormProps) {
           </Field>
         </Section>
 
-        {/* Físico y metas */}
+        {/* Físico y metas — oculto temporalmente, descomentar para reactivar
         <Section title="Físico y metas">
           <Field label="Altura (cm)">
             <input type="number" value={form.height} onChange={(e) => set('height', e.target.value)} className={inputClass} placeholder="Ej: 175" />
@@ -192,8 +192,9 @@ export function StudentForm({ student }: StudentFormProps) {
             <input type="number" step="0.1" value={form.monthlyGoalKg} onChange={(e) => set('monthlyGoalKg', e.target.value)} className={inputClass} placeholder="Ej: 2" />
           </Field>
         </Section>
+        */}
 
-        {/* Medidas corporales */}
+        {/* Medidas corporales — oculto temporalmente, descomentar para reactivar
         <Section title="Medidas corporales (cm)">
           <Field label="Cintura">
             <input type="number" step="0.1" value={form.waist} onChange={(e) => set('waist', e.target.value)} className={inputClass} placeholder="cm" />
@@ -211,6 +212,7 @@ export function StudentForm({ student }: StudentFormProps) {
             <input type="number" step="0.1" value={form.glutes} onChange={(e) => set('glutes', e.target.value)} className={inputClass} placeholder="cm" />
           </Field>
         </Section>
+        */}
 
         {/* Salud */}
         <Section title="Salud">
