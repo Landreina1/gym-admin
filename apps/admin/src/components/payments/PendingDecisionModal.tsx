@@ -1,9 +1,14 @@
 'use client';
 
-import { AlertCircle, CheckCircle, Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, CheckCircle, Plus, History } from 'lucide-react';
+import { paymentsService } from '@/services/payments.service';
+import { formatDate } from '@/lib/utils';
 
 interface Props {
   studentName: string;
+  studentId: string;
+  currentPeriodEnd: string;
   pendingBalance: number;
   planPrice: number;
   onComplete: () => void;
@@ -11,9 +16,27 @@ interface Props {
   onClose: () => void;
 }
 
-export function PendingDecisionModal({ studentName, pendingBalance, planPrice, onComplete, onAbono, onClose }: Props) {
+const METHOD_SHORT: Record<string, string> = {
+  'Pago Móvil': 'Pago Móvil',
+  'Transferencia': 'Transfer.',
+  'Efectivo USD': 'Ef. USD',
+  'Efectivo Bs': 'Ef. Bs',
+  'Otro': 'Otro',
+};
+
+export function PendingDecisionModal({ studentName, studentId, currentPeriodEnd, pendingBalance, planPrice, onComplete, onAbono, onClose }: Props) {
   const paidSoFar = Math.max(0, planPrice - pendingBalance);
   const pctPaid = planPrice > 0 ? Math.min(100, Math.round((paidSoFar / planPrice) * 100)) : 0;
+
+  const { data: allPayments = [] } = useQuery({
+    queryKey: ['payments-student', studentId],
+    queryFn: () => paymentsService.getByStudent(studentId),
+  });
+
+  // Only payments belonging to the current (pending) period
+  const periodPayments = allPayments.filter(
+    (p) => p.periodEnd?.slice(0, 10) === currentPeriodEnd,
+  );
 
   return (
     <>
@@ -35,7 +58,7 @@ export function PendingDecisionModal({ studentName, pendingBalance, planPrice, o
       >
         <div
           className="pdm-card"
-          style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 420, boxShadow: '0 24px 64px rgba(0,0,0,0.18)', animation: 'pdm-in 0.2s cubic-bezier(0.22,1,0.36,1) both' }}
+          style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 440, boxShadow: '0 24px 64px rgba(0,0,0,0.18)', animation: 'pdm-in 0.2s cubic-bezier(0.22,1,0.36,1) both', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}
         >
           {/* Header */}
           <div style={{ padding: '24px 24px 0' }}>
@@ -50,13 +73,13 @@ export function PendingDecisionModal({ studentName, pendingBalance, planPrice, o
             </div>
 
             {/* Balance info */}
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>Saldo pendiente</span>
                 <span style={{ fontSize: 20, fontWeight: 800, color: '#d97706' }}>${pendingBalance.toFixed(2)} USD</span>
               </div>
               <div style={{ background: '#fde68a', borderRadius: 99, height: 6, overflow: 'hidden' }}>
-                <div style={{ width: `${pctPaid}%`, height: '100%', background: '#f59e0b', borderRadius: 99, transition: 'width 0.3s' }} />
+                <div style={{ width: `${pctPaid}%`, height: '100%', background: '#f59e0b', borderRadius: 99 }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
                 <span style={{ fontSize: 11, color: '#92400e' }}>${paidSoFar.toFixed(2)} pagado ({pctPaid}%)</span>
@@ -64,7 +87,30 @@ export function PendingDecisionModal({ studentName, pendingBalance, planPrice, o
               </div>
             </div>
 
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#374151' }}>
+            {/* Abonos del período */}
+            {periodPayments.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <History style={{ width: 13, height: 13, color: '#6B7280' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Abonos registrados ({periodPayments.length})
+                  </span>
+                </div>
+                <div style={{ background: '#f9fafb', border: '1px solid #f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
+                  {periodPayments.map((p, i) => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderBottom: i < periodPayments.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#374151' }}>{formatDate(p.paidAt)}</p>
+                        <p style={{ margin: '1px 0 0', fontSize: 11, color: '#9CA3AF' }}>{METHOD_SHORT[p.paymentMethod ?? ''] ?? p.paymentMethod ?? '—'}</p>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>+${Number(p.amount).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#374151' }}>
               ¿Cómo deseas registrar este pago?
             </p>
           </div>

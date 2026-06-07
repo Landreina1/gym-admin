@@ -394,24 +394,65 @@ export default function StudentDetailPage() {
                 <CreditCard className="w-4 h-4 text-gray-400" />
                 <h2 className="text-sm font-semibold text-gray-900">Historial de pagos</h2>
               </div>
-              {student.payments && student.payments.length > 0 ? (
-                <div className="divide-y divide-gray-50">
-                  {student.payments.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between px-4 md:px-5 py-3 hover:bg-gray-50">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{formatDate(p.paidAt)}</p>
-                        <p className="text-xs text-gray-400">{formatDate(p.periodStart)} → {formatDate(p.periodEnd)}</p>
-                      </div>
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <span className="text-sm font-semibold text-gray-700">{formatCurrency(p.amount)}</span>
-                        <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',
-                          p.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600',
-                        )}>{p.status === 'PAID' ? 'Pagado' : 'En mora'}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
+              {student.payments && student.payments.length > 0 ? (() => {
+                // Group payments by periodEnd
+                const groups = new Map<string, typeof student.payments>();
+                student.payments!.forEach((p) => {
+                  const key = p.periodEnd?.slice(0, 10) ?? 'unknown';
+                  if (!groups.has(key)) groups.set(key, []);
+                  groups.get(key)!.push(p);
+                });
+                const sorted = Array.from(groups.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+                return (
+                  <div className="divide-y divide-gray-100">
+                    {sorted.map(([periodEnd, pmts]) => {
+                      const totalPaid = pmts.reduce((s, p) => s + Number(p.amount), 0);
+                      const totalAmount = Number(pmts[0].totalAmount ?? pmts[0].amount);
+                      const isComplete = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
+                      const hasMultiple = pmts.length > 1;
+                      return (
+                        <div key={periodEnd} className="px-4 md:px-5 py-3">
+                          {/* Period header */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-gray-500">Período hasta {formatDate(periodEnd)}</span>
+                              {hasMultiple && (
+                                <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                                  {pmts.length} abonos
+                                </span>
+                              )}
+                            </div>
+                            <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',
+                              isComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+                            )}>
+                              {isComplete ? 'Completo' : `Pendiente $${(totalAmount - totalPaid).toFixed(2)}`}
+                            </span>
+                          </div>
+                          {/* Individual payments */}
+                          <div className="space-y-1">
+                            {pmts.map((p) => (
+                              <div key={p.id} className="flex items-center justify-between py-1 pl-3 border-l-2 border-gray-100">
+                                <div>
+                                  <p className="text-xs font-medium text-gray-700">{formatDate(p.paidAt)}</p>
+                                  {p.paymentMethod && <p className="text-xs text-gray-400">{p.paymentMethod}</p>}
+                                </div>
+                                <span className="text-sm font-bold text-emerald-600">{formatCurrency(p.amount)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {/* Period total when multiple */}
+                          {hasMultiple && (
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+                              <span className="text-xs text-gray-400">Total pagado</span>
+                              <span className="text-sm font-bold text-gray-800">{formatCurrency(totalPaid)}{totalAmount > 0 && <span className="text-xs text-gray-400 font-normal"> / {formatCurrency(totalAmount)}</span>}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })() : (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <CreditCard className="w-8 h-8 text-gray-200 mb-2" />
                   <p className="text-sm text-gray-400">Sin pagos registrados aún</p>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, CreditCard, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, CreditCard, RefreshCw, AlertCircle, ArrowLeft } from 'lucide-react';
 import { paymentsService } from '@/services/payments.service';
 
 const METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'];
@@ -28,9 +28,10 @@ interface Props {
   onClose: () => void;
   onSuccess?: () => void;
   pendingMode?: PendingMode;
+  onBack?: () => void;
 }
 
-export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode }: Props) {
+export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode, onBack }: Props) {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -186,6 +187,11 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode 
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {onBack && (
+                <button onClick={onBack} style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: '#f4f6f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280', marginRight: 2 }}>
+                  <ArrowLeft style={{ width: 16, height: 16 }} />
+                </button>
+              )}
               <div style={{ width: 34, height: 34, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CreditCard style={{ width: 16, height: 16, color: '#E53935' }} />
               </div>
@@ -317,8 +323,8 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode 
             )}
 
             <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
-              <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
-                Cancelar
+              <button type="button" onClick={pendingMode && onBack ? onBack : onClose} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                {pendingMode && onBack ? '← Volver' : 'Cancelar'}
               </button>
               <button type="submit" disabled={mutation.isPending} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: tab === 'full' ? '#E53935' : '#f59e0b', color: '#fff', fontSize: 13, fontWeight: 600, cursor: mutation.isPending ? 'not-allowed' : 'pointer', opacity: mutation.isPending ? 0.7 : 1, boxShadow: `0 4px 12px ${tab === 'full' ? 'rgba(229,57,53,0.28)' : 'rgba(245,158,11,0.28)'}` }}>
                 {mutation.isPending ? 'Registrando...' : tab === 'full' ? 'Registrar pago' : 'Registrar abono'}

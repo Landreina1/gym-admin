@@ -145,6 +145,8 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
     return (
       <PendingDecisionModal
         studentName={`${student.firstName} ${student.lastName}`}
+        studentId={student.id}
+        currentPeriodEnd={student.currentPeriodEnd!}
         pendingBalance={effectivePendingBalance}
         planPrice={planPrice}
         onComplete={() => { setPendingDecision('complete'); setTab('partial'); setAmount(String(effectivePendingBalance)); setShowDecision(false); }}
@@ -205,12 +207,20 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
                     </span>
                   </div>
                   {student && hasPending && (
-                    <div style={{ marginTop: 5, padding: '7px 12px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <AlertCircle style={{ width: 13, height: 13, color: '#f59e0b', flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>
-                        Saldo pendiente: ${effectivePendingBalance.toFixed(2)} USD
-                        {pendingDecision && <span style={{ fontWeight: 400, color: '#78350f' }}> — {pendingDecision === 'complete' ? 'Completar' : 'Abonar'}</span>}
-                      </span>
+                    <div style={{ marginTop: 5, padding: '7px 12px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <AlertCircle style={{ width: 13, height: 13, color: '#f59e0b', flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+                          Saldo pendiente: ${effectivePendingBalance.toFixed(2)} USD
+                          {pendingDecision && <span style={{ fontWeight: 400, color: '#78350f' }}> — {pendingDecision === 'complete' ? 'Completar' : 'Abonar'}</span>}
+                        </span>
+                      </div>
+                      {pendingDecision && (
+                        <button type="button" onClick={() => { setPendingDecision(null); setShowDecision(true); }}
+                          style={{ fontSize: 11, color: '#d97706', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
+                          Cambiar
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

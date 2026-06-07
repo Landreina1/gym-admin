@@ -43,6 +43,8 @@ export function PaymentFlowModal({ student, onClose, onSuccess }: Props) {
     return (
       <PendingDecisionModal
         studentName={`${student.firstName} ${student.lastName}`}
+        studentId={student.id}
+        currentPeriodEnd={student.currentPeriodEnd!}
         pendingBalance={student.pendingBalance!}
         planPrice={Number(student.plan.price)}
         onComplete={() => { setDecisionMode('complete'); setStep('payment'); }}
@@ -60,6 +62,7 @@ export function PaymentFlowModal({ student, onClose, onSuccess }: Props) {
         pendingBalance: student.pendingBalance!,
         periodEnd: student.currentPeriodEnd!,
       }}
+      onBack={() => { setStep('decision'); setDecisionMode(null); }}
       onClose={onClose}
       onSuccess={onSuccess}
     />
