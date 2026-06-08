@@ -109,19 +109,11 @@ export default function PaymentsPage() {
   };
 
   const handleExport = () => {
-    const overdue = filtered.filter((s) => s.paymentStatus === 'OVERDUE').length;
-    const dueSoon = filtered.filter((s) => s.paymentStatus === 'DUE_SOON').length;
-    const alDia = filtered.filter((s) => s.paymentStatus === 'UP_TO_DATE').length;
-    const totalRevenue = filtered.reduce((s, x) => s + (x.lastPayment?.amount ?? 0), 0);
+    const n = new Date();
+    const dateStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
     exportPdf({
-      title: 'Reporte de Pagos',
-      subtitle: filterStatus !== 'ALL' ? STATUS_LABELS[filterStatus] : 'Todos los estados',
-      summary: [
-        { label: 'Al día', value: String(alDia), color: '#16a34a' },
-        { label: 'En mora', value: String(overdue), color: '#dc2626' },
-        { label: 'Próx. venc.', value: String(dueSoon), color: '#d97706' },
-        { label: 'Recaudado (último pago)', value: `$${totalRevenue.toFixed(2)}` },
-      ],
+      title: 'Registro de Pagos',
+      filename: `Pagos_Gym_El_Cuba_${dateStr}.pdf`,
       headers: ['Nombre', 'Apellido', 'Plan', 'Estado', 'Próximo cobro', 'Saldo pendiente', 'Último pago', 'Monto', 'Método'],
       rows: filtered.map((s) => [
         s.firstName,

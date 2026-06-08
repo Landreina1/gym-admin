@@ -25,16 +25,11 @@ export default function StudentsPage() {
     setExporting(true);
     try {
       const res = await studentsService.getAll({ search, status, planId, limit: 9999 });
-      const total = res.data.length;
-      const activos = res.data.filter((s) => s.status === 'ACTIVE').length;
+      const n = new Date();
+      const dateStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
       exportPdf({
-        title: 'Reporte de Alumnos',
-        subtitle: [search && `Búsqueda: "${search}"`, status && (status === 'ACTIVE' ? 'Activos' : 'Inactivos'), planId && plans.find((p) => p.id === planId)?.name].filter(Boolean).join(' · ') || 'Todos los alumnos',
-        summary: [
-          { label: 'Total', value: String(total) },
-          { label: 'Activos', value: String(activos), color: '#16a34a' },
-          { label: 'Inactivos', value: String(total - activos), color: '#dc2626' },
-        ],
+        title: 'Registro General de Alumnos',
+        filename: `Alumnos_Gym_El_Cuba_${dateStr}.pdf`,
         headers: ['Nombre', 'Apellido', 'Cédula', 'Email', 'Teléfono', 'Plan', 'Mensualidad', 'Estado', 'Día cobro', 'Ingreso'],
         rows: res.data.map((s) => [
           s.firstName,
