@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle, Clock, TrendingUp, DollarSign, Plus,
-  Search, ChevronRight, Wallet,
+  Search, ChevronRight, Wallet, Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -15,6 +15,7 @@ import { paymentsService } from '@/services/payments.service';
 import { Toast } from '@/components/ui/Toast';
 import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
+import { downloadCsv } from '@/lib/export';
 import type { StudentForPayments } from '@/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -102,6 +103,28 @@ export default function PaymentsPage() {
 
   const openModal = (s: StudentForPayments) => setSelectedStudent(s);
 
+  const STATUS_LABELS: Record<string, string> = {
+    UP_TO_DATE: 'Al día', OVERDUE: 'En mora',
+    DUE_SOON: 'Próx. venc.', PARTIAL: 'Pago parcial',
+  };
+
+  const handleExport = () => {
+    const headers = ['Nombre', 'Apellido', 'Plan', 'Estado', 'Próximo cobro', 'Saldo pendiente (USD)', 'Último pago (fecha)', 'Último pago (USD)', 'Método'];
+    const rows = filtered.map((s) => [
+      s.firstName,
+      s.lastName,
+      s.plan?.name ?? '',
+      STATUS_LABELS[s.paymentStatus ?? ''] ?? '',
+      s.nextDueDate ? s.nextDueDate.toString().slice(0, 10) : '',
+      s.pendingBalance ?? 0,
+      s.lastPayment?.paidAt ? s.lastPayment.paidAt.slice(0, 10) : '',
+      s.lastPayment?.amount ?? '',
+      s.lastPayment?.paymentMethod ?? '',
+    ]);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadCsv(`pagos_${date}.csv`, [headers, ...rows]);
+  };
+
   // Unique plans for filter
   const plans = useMemo(() => {
     const map = new Map<string, string>();
@@ -150,10 +173,20 @@ export default function PaymentsPage() {
             <h1 className="text-xl font-bold text-gray-900">Pagos</h1>
             <p className="text-sm text-gray-400 mt-0.5">Control financiero del gimnasio</p>
           </div>
-          <button onClick={() => setShowCharts((v) => !v)}
-            className="text-xs text-gray-400 hover:text-gray-600 flex-shrink-0 mt-1">
-            {showCharts ? 'Ocultar gráficas' : 'Ver gráficas'}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={handleExport}
+              disabled={filtered.length === 0}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 bg-white text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-40"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Exportar CSV</span>
+            </button>
+            <button onClick={() => setShowCharts((v) => !v)}
+              className="text-xs text-gray-400 hover:text-gray-600 mt-1">
+              {showCharts ? 'Ocultar gráficas' : 'Ver gráficas'}
+            </button>
+          </div>
         </div>
 
         {/* ── KPI Cards ── */}

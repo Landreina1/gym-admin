@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { Plus, Search, ChevronDown, X, SlidersHorizontal, Download } from 'lucide-react';
 import { studentsService } from '@/services/students.service';
 import { plansService } from '@/services/plans.service';
 import { StudentTable } from '@/components/students/StudentTable';
 import { cn } from '@/lib/utils';
+import { downloadCsv } from '@/lib/export';
 import Link from 'next/link';
 
 const selectClass =
@@ -18,6 +19,31 @@ export default function StudentsPage() {
   const [planId, setPlanId] = useState('');
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await studentsService.getAll({ search, status, planId, limit: 9999 });
+      const headers = ['Nombre', 'Apellido', 'Cédula', 'Email', 'Teléfono', 'Plan', 'Mensualidad (USD)', 'Estado', 'Día cobro', 'Ingreso'];
+      const rows = res.data.map((s) => [
+        s.firstName,
+        s.lastName,
+        (s as any).cedula ?? '',
+        s.email ?? '',
+        s.phone ?? '',
+        s.plan?.name ?? '',
+        s.plan?.price ?? '',
+        s.status === 'ACTIVE' ? 'Activo' : 'Inactivo',
+        s.billingDay ?? '',
+        s.joinDate ? s.joinDate.slice(0, 10) : '',
+      ]);
+      const date = new Date().toISOString().slice(0, 10);
+      downloadCsv(`alumnos_${date}.csv`, [headers, ...rows]);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['students', { search, status, planId, page }],
@@ -42,14 +68,24 @@ export default function StudentsPage() {
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Alumnos</h1>
           <p className="text-sm text-gray-400 mt-0.5">{data?.total ?? 0} alumno{(data?.total ?? 0) !== 1 ? 's' : ''} en total</p>
         </div>
-        {/* Nuevo alumno — desktop only (mobile has FAB) */}
-        <Link
-          href="/students/new"
-          className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo alumno
-        </Link>
+        {/* Actions */}
+        <div className="hidden md:flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 bg-white text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4" />
+            {exporting ? 'Exportando...' : 'Exportar CSV'}
+          </button>
+          <Link
+            href="/students/new"
+            className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo alumno
+          </Link>
+        </div>
       </div>
 
       {/* Desktop filter bar */}
