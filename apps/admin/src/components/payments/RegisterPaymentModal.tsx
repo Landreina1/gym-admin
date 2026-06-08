@@ -41,9 +41,14 @@ interface Props {
   currentPeriodEnd?: string;
 }
 
+function localToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode, onBack, suggestedNextPeriodEnd, currentPeriodEnd }: Props) {
   const queryClient = useQueryClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
 
   const initialTab = pendingMode ? 'partial' : 'full';
   const [tab,        setTab]        = useState<'full' | 'partial'>(initialTab);
@@ -102,9 +107,13 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
   }
 
   function calcPeriodEnd(from: string) {
-    const d = new Date(from);
-    d.setMonth(d.getMonth() + 1);
-    return d.toISOString().slice(0, 10);
+    const [y, m, d] = from.split('-').map(Number);
+    const date = new Date(y, m - 1, d); // local time — no UTC drift
+    date.setMonth(date.getMonth() + 1);
+    const ny = date.getFullYear();
+    const nm = String(date.getMonth() + 1).padStart(2, '0');
+    const nd = String(date.getDate()).padStart(2, '0');
+    return `${ny}-${nm}-${nd}`;
   }
 
   function getPeriodEnd() {
@@ -326,13 +335,16 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
               </div>
             )}
 
-            {/* 4. Fecha de pago */}
-            <div>
-              <label style={lbl}>Fecha de pago *</label>
-              <input type="date" required value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inp} />
-              <p style={{ marginTop: 4, fontSize: 11, color: '#9CA3AF' }}>
-                Período: {fmtDate(paidAt)} → {fmtDate(getPeriodEnd())}
-              </p>
+            {/* 4. Fecha de pago — automática (hoy) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Fecha de pago</p>
+                <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{fmtDate(paidAt)}</p>
+                <p style={{ margin: '1px 0 0', fontSize: 10, color: '#94a3b8' }}>
+                  Período: {fmtDate(paidAt)} → {fmtDate(getPeriodEnd())}
+                </p>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '3px 8px', borderRadius: 99 }}>Hoy</span>
             </div>
 
             {/* 5. Notas (solo pago parcial) */}
