@@ -10,6 +10,12 @@ const BS_METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo Bs'];
 
 function isBs(method: string) { return BS_METHODS.includes(method); }
 
+/** Format ISO date string (YYYY-MM-DD) as DD/MM/YYYY without timezone shift */
+function fmtDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 interface StudentInfo {
   id: string;
   firstName: string;
@@ -235,8 +241,8 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12 }}>
                 <AlertCircle style={{ width: 15, height: 15, color: '#3b82f6', flexShrink: 0, marginTop: 1 }} />
                 <p style={{ margin: 0, fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
-                  <strong>Período actual pagado</strong> hasta {currentPeriodEnd}.<br />
-                  Este pago se aplicará al siguiente período: <strong>{suggestedNextPeriodEnd}</strong>.
+                  <strong>Período actual pagado</strong> hasta {currentPeriodEnd ? fmtDate(currentPeriodEnd) : '—'}.<br />
+                  Este pago se aplicará al siguiente período: <strong>{fmtDate(suggestedNextPeriodEnd)}</strong>.
                 </p>
               </div>
             )}
@@ -325,7 +331,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
               <label style={lbl}>Fecha de pago *</label>
               <input type="date" required value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inp} />
               <p style={{ marginTop: 4, fontSize: 11, color: '#9CA3AF' }}>
-                Período: {paidAt} → {getPeriodEnd()}
+                Período: {fmtDate(paidAt)} → {fmtDate(getPeriodEnd())}
               </p>
             </div>
 
