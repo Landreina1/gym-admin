@@ -45,13 +45,16 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
+  // When current period is fully paid, default payment date to start of next period
+  const defaultPaidAt = suggestedNextPeriodEnd ? (currentPeriodEnd ?? today) : today;
+
   const initialTab = pendingMode ? 'partial' : 'full';
   const [tab,        setTab]        = useState<'full' | 'partial'>(initialTab);
   const [method,     setMethod]     = useState('Pago Móvil');
   const [bcvRate,    setBcvRate]    = useState('');
   const [loadingBcv, setLoadingBcv] = useState(false);
   const [amount,     setAmount]     = useState(''); // Bs if isBs(method), else USD
-  const [paidAt,     setPaidAt]     = useState(today);
+  const [paidAt,     setPaidAt]     = useState(defaultPaidAt);
   const [notes,      setNotes]      = useState('');
   const [error,      setError]      = useState('');
   const autoFilledRef = useRef(false);
@@ -64,7 +67,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
     if (student) {
       setTab(pendingMode ? 'partial' : 'full');
       setMethod('Pago Móvil'); setBcvRate('');
-      setAmount(''); setPaidAt(today); setNotes(''); setError('');
+      setAmount(''); setPaidAt(defaultPaidAt); setNotes(''); setError('');
       autoFilledRef.current = false;
     }
   }, [student]);
