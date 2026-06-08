@@ -15,7 +15,7 @@ import { paymentsService } from '@/services/payments.service';
 import { Toast } from '@/components/ui/Toast';
 import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
-import { downloadCsv } from '@/lib/export';
+import { exportPdf } from '@/lib/export';
 import type { StudentForPayments } from '@/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -109,20 +109,32 @@ export default function PaymentsPage() {
   };
 
   const handleExport = () => {
-    const headers = ['Nombre', 'Apellido', 'Plan', 'Estado', 'Próximo cobro', 'Saldo pendiente (USD)', 'Último pago (fecha)', 'Último pago (USD)', 'Método'];
-    const rows = filtered.map((s) => [
-      s.firstName,
-      s.lastName,
-      s.plan?.name ?? '',
-      STATUS_LABELS[s.paymentStatus ?? ''] ?? '',
-      s.nextDueDate ? s.nextDueDate.toString().slice(0, 10) : '',
-      s.pendingBalance ?? 0,
-      s.lastPayment?.paidAt ? s.lastPayment.paidAt.slice(0, 10) : '',
-      s.lastPayment?.amount ?? '',
-      s.lastPayment?.paymentMethod ?? '',
-    ]);
-    const date = new Date().toISOString().slice(0, 10);
-    downloadCsv(`pagos_${date}.csv`, [headers, ...rows]);
+    const overdue = filtered.filter((s) => s.paymentStatus === 'OVERDUE').length;
+    const dueSoon = filtered.filter((s) => s.paymentStatus === 'DUE_SOON').length;
+    const alDia = filtered.filter((s) => s.paymentStatus === 'UP_TO_DATE').length;
+    const totalRevenue = filtered.reduce((s, x) => s + (x.lastPayment?.amount ?? 0), 0);
+    exportPdf({
+      title: 'Reporte de Pagos',
+      subtitle: filterStatus !== 'ALL' ? STATUS_LABELS[filterStatus] : 'Todos los estados',
+      summary: [
+        { label: 'Al día', value: String(alDia), color: '#16a34a' },
+        { label: 'En mora', value: String(overdue), color: '#dc2626' },
+        { label: 'Próx. venc.', value: String(dueSoon), color: '#d97706' },
+        { label: 'Recaudado (último pago)', value: `$${totalRevenue.toFixed(2)}` },
+      ],
+      headers: ['Nombre', 'Apellido', 'Plan', 'Estado', 'Próximo cobro', 'Saldo pendiente', 'Último pago', 'Monto', 'Método'],
+      rows: filtered.map((s) => [
+        s.firstName,
+        s.lastName,
+        s.plan?.name ?? '—',
+        STATUS_LABELS[s.paymentStatus ?? ''] ?? '—',
+        s.nextDueDate ? s.nextDueDate.toString().slice(0, 10) : '—',
+        s.pendingBalance ? `$${Number(s.pendingBalance).toFixed(2)}` : '—',
+        s.lastPayment?.paidAt ? s.lastPayment.paidAt.slice(0, 10) : '—',
+        s.lastPayment?.amount ? `$${Number(s.lastPayment.amount).toFixed(2)}` : '—',
+        s.lastPayment?.paymentMethod ?? '—',
+      ]),
+    });
   };
 
   // Unique plans for filter
@@ -180,7 +192,7 @@ export default function PaymentsPage() {
               className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 bg-white text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-40"
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Exportar CSV</span>
+              <span className="hidden sm:inline">Exportar PDF</span>
             </button>
             <button onClick={() => setShowCharts((v) => !v)}
               className="text-xs text-gray-400 hover:text-gray-600 mt-1">

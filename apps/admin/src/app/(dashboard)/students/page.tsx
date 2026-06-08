@@ -7,7 +7,7 @@ import { studentsService } from '@/services/students.service';
 import { plansService } from '@/services/plans.service';
 import { StudentTable } from '@/components/students/StudentTable';
 import { cn } from '@/lib/utils';
-import { downloadCsv } from '@/lib/export';
+import { exportPdf } from '@/lib/export';
 import Link from 'next/link';
 
 const selectClass =
@@ -25,21 +25,30 @@ export default function StudentsPage() {
     setExporting(true);
     try {
       const res = await studentsService.getAll({ search, status, planId, limit: 9999 });
-      const headers = ['Nombre', 'Apellido', 'Cédula', 'Email', 'Teléfono', 'Plan', 'Mensualidad (USD)', 'Estado', 'Día cobro', 'Ingreso'];
-      const rows = res.data.map((s) => [
-        s.firstName,
-        s.lastName,
-        (s as any).cedula ?? '',
-        s.email ?? '',
-        s.phone ?? '',
-        s.plan?.name ?? '',
-        s.plan?.price ?? '',
-        s.status === 'ACTIVE' ? 'Activo' : 'Inactivo',
-        s.billingDay ?? '',
-        s.joinDate ? s.joinDate.slice(0, 10) : '',
-      ]);
-      const date = new Date().toISOString().slice(0, 10);
-      downloadCsv(`alumnos_${date}.csv`, [headers, ...rows]);
+      const total = res.data.length;
+      const activos = res.data.filter((s) => s.status === 'ACTIVE').length;
+      exportPdf({
+        title: 'Reporte de Alumnos',
+        subtitle: [search && `Búsqueda: "${search}"`, status && (status === 'ACTIVE' ? 'Activos' : 'Inactivos'), planId && plans.find((p) => p.id === planId)?.name].filter(Boolean).join(' · ') || 'Todos los alumnos',
+        summary: [
+          { label: 'Total', value: String(total) },
+          { label: 'Activos', value: String(activos), color: '#16a34a' },
+          { label: 'Inactivos', value: String(total - activos), color: '#dc2626' },
+        ],
+        headers: ['Nombre', 'Apellido', 'Cédula', 'Email', 'Teléfono', 'Plan', 'Mensualidad', 'Estado', 'Día cobro', 'Ingreso'],
+        rows: res.data.map((s) => [
+          s.firstName,
+          s.lastName,
+          (s as any).cedula || '—',
+          s.email || '—',
+          s.phone || '—',
+          s.plan?.name || '—',
+          s.plan?.price ? `$${s.plan.price} USD` : '—',
+          s.status === 'ACTIVE' ? 'Activo' : 'Inactivo',
+          `Día ${s.billingDay}`,
+          s.joinDate ? s.joinDate.slice(0, 10) : '—',
+        ]),
+      });
     } finally {
       setExporting(false);
     }
@@ -76,7 +85,7 @@ export default function StudentsPage() {
             className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 bg-white text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <Download className="w-4 h-4" />
-            {exporting ? 'Exportando...' : 'Exportar CSV'}
+            {exporting ? 'Generando...' : 'Exportar PDF'}
           </button>
           <Link
             href="/students/new"

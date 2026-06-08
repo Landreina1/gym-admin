@@ -22,6 +22,12 @@ interface Props {
 
 type DecisionMode = 'complete' | 'abono';
 
+function addOneMonth(dateStr: string): string {
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export function PaymentFlowModal({ student, onClose, onSuccess }: Props) {
   const [step, setStep] = useState<'decision' | 'payment'>('decision');
   const [decisionMode, setDecisionMode] = useState<DecisionMode | null>(null);
@@ -39,9 +45,21 @@ export function PaymentFlowModal({ student, onClose, onSuccess }: Props) {
     (student.pendingBalance ?? 0) > 0 &&
     !!student.currentPeriodEnd;
 
+  // Current period fully paid → suggest next period automatically
+  const isPaidUp = student.paymentStatus === 'UP_TO_DATE' && !!student.currentPeriodEnd;
+  const suggestedNextPeriodEnd = isPaidUp ? addOneMonth(student.currentPeriodEnd!) : undefined;
+
   // No pending balance — go straight to payment modal
   if (!hasPending) {
-    return <RegisterPaymentModal student={student} onClose={onClose} onSuccess={onSuccess} />;
+    return (
+      <RegisterPaymentModal
+        student={student}
+        onClose={onClose}
+        onSuccess={onSuccess}
+        suggestedNextPeriodEnd={suggestedNextPeriodEnd}
+        currentPeriodEnd={student.currentPeriodEnd ?? undefined}
+      />
+    );
   }
 
   // Show decision first

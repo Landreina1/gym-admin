@@ -29,9 +29,13 @@ interface Props {
   onSuccess?: () => void;
   pendingMode?: PendingMode;
   onBack?: () => void;
+  /** When current period is fully paid, this is the next period's end date (pre-filled & locked) */
+  suggestedNextPeriodEnd?: string;
+  /** The current fully-paid period end date, used to block duplicate full payments */
+  currentPeriodEnd?: string;
 }
 
-export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode, onBack }: Props) {
+export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode, onBack, suggestedNextPeriodEnd, currentPeriodEnd }: Props) {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -97,6 +101,12 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
     return d.toISOString().slice(0, 10);
   }
 
+  function getPeriodEnd() {
+    if (pendingMode) return pendingMode.periodEnd;
+    if (suggestedNextPeriodEnd) return suggestedNextPeriodEnd;
+    return calcPeriodEnd(paidAt);
+  }
+
   // Derived values
   const rate = Number(bcvRate || 0);
   // For pago completo: always planPrice USD regardless of method
@@ -128,7 +138,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
         paymentType:   tab === 'full' ? 'FULL' : 'PARTIAL',
         paidAt,
         periodStart:   paidAt,
-        periodEnd:     pendingMode ? pendingMode.periodEnd : calcPeriodEnd(paidAt),
+        periodEnd:     getPeriodEnd(),
         paymentMethod: method,
         notes: noteParts.length ? noteParts.join(' | ') : undefined,
       });
@@ -220,6 +230,17 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
           {/* Form */}
           <form onSubmit={handleSubmit} style={{ padding: '16px 24px 20px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
 
+            {/* Next period banner — shown when current period is fully paid */}
+            {suggestedNextPeriodEnd && !pendingMode && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12 }}>
+                <AlertCircle style={{ width: 15, height: 15, color: '#3b82f6', flexShrink: 0, marginTop: 1 }} />
+                <p style={{ margin: 0, fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
+                  <strong>Período actual pagado</strong> hasta {currentPeriodEnd}.<br />
+                  Este pago se aplicará al siguiente período: <strong>{suggestedNextPeriodEnd}</strong>.
+                </p>
+              </div>
+            )}
+
             {/* Pending balance banner */}
             {pendingMode && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12 }}>
@@ -304,7 +325,7 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
               <label style={lbl}>Fecha de pago *</label>
               <input type="date" required value={paidAt} onChange={(e) => setPaidAt(e.target.value)} className={inp} />
               <p style={{ marginTop: 4, fontSize: 11, color: '#9CA3AF' }}>
-                Período: {paidAt} → {pendingMode ? pendingMode.periodEnd : calcPeriodEnd(paidAt)}
+                Período: {paidAt} → {getPeriodEnd()}
               </p>
             </div>
 

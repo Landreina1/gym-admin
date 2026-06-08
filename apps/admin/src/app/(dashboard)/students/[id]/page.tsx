@@ -174,7 +174,7 @@ export default function StudentDetailPage() {
         </div>
 
         {/* ── 2. Tarjetas resumen ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {/* Plan */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <p className="text-xs text-gray-400 mb-1">Plan actual</p>
@@ -190,14 +190,6 @@ export default function StudentDetailPage() {
             <p className="text-xs text-gray-400 mb-1">Próximo cobro</p>
             <p className="text-sm font-bold text-gray-900">
               {student.nextDueDate ? formatDate(student.nextDueDate) : '—'}
-            </p>
-          </div>
-          {/* Saldo pendiente */}
-          <div className={cn('rounded-2xl border shadow-sm p-4', pendingBalance > 0 ? 'bg-amber-50 border-amber-100' : 'bg-white border-gray-100')}>
-            <p className="text-xs text-gray-400 mb-1">Saldo pendiente</p>
-            <p className={cn('text-lg font-bold', pendingBalance > 0 ? 'text-amber-600' : 'text-emerald-600')}>
-              {pendingBalance > 0 ? `$${pendingBalance.toFixed(2)}` : '$0.00'}
-              <span className="text-xs font-normal text-gray-400 ml-1">USD</span>
             </p>
           </div>
         </div>
