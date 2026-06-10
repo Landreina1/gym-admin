@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
@@ -10,11 +10,17 @@ export class StudentsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateStudentDto) {
+    if (dto.cedula) {
+      const conflict = await this.prisma.student.findFirst({ where: { cedula: dto.cedula } });
+      if (conflict) throw new ConflictException(`Ya existe un alumno registrado con la cédula ${dto.cedula}`);
+    }
+
     return this.prisma.student.create({
       data: {
         ...dto,
+        email:     dto.email     ? dto.email     : undefined,
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
-        joinDate: dto.joinDate ? new Date(dto.joinDate) : undefined,
+        joinDate:  dto.joinDate  ? new Date(dto.joinDate)  : undefined,
       },
       include: { plan: true },
     });
@@ -76,13 +82,26 @@ export class StudentsService {
 
   async update(id: string, dto: UpdateStudentDto) {
     await this.findOne(id);
+
+    if (dto.cedula) {
+      const conflict = await this.prisma.student.findFirst({
+        where: { cedula: dto.cedula, NOT: { id } },
+      });
+      if (conflict) throw new ConflictException(`Ya existe un alumno registrado con la cédula ${dto.cedula}`);
+    }
+
+    // Build data explicitly so undefined fields are skipped and empty strings don't
+    // violate the email @unique constraint
+    const { birthDate, joinDate, email, ...rest } = dto;
+    const data: Record<string, unknown> = { ...rest };
+
+    if (birthDate !== undefined) data.birthDate = birthDate ? new Date(birthDate) : null;
+    if (joinDate  !== undefined) data.joinDate  = joinDate  ? new Date(joinDate)  : undefined;
+    if (email     !== undefined) data.email     = email     || null;
+
     return this.prisma.student.update({
       where: { id },
-      data: {
-        ...dto,
-        birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
-        joinDate: dto.joinDate ? new Date(dto.joinDate) : undefined,
-      },
+      data,
       include: { plan: true },
     });
   }
