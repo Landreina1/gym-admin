@@ -14,7 +14,7 @@ export default function NewStudentPage() {
         </button>
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Nuevo alumno</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Completá los datos del alumno</p>
+          <p className="text-sm text-gray-400 mt-0.5">Registra los datos básicos para comenzar a gestionar al alumno</p>
         </div>
       </div>
       <StudentForm />

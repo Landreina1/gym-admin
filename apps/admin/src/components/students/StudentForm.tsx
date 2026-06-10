@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { User, CreditCard, ClipboardList, CheckCircle2, Info, DollarSign } from 'lucide-react';
 import { studentsService } from '@/services/students.service';
 import { plansService } from '@/services/plans.service';
 import type { Student, StudentGoal } from '@/types';
@@ -10,32 +11,58 @@ import { Toast } from '@/components/ui/Toast';
 
 interface StudentFormProps { student?: Student }
 
-const GOAL_OPTIONS: { value: StudentGoal; label: string }[] = [
-  { value: 'LOSE_WEIGHT', label: 'Bajar de peso' },
-  { value: 'GAIN_WEIGHT', label: 'Subir de peso' },
-  { value: 'MAINTAIN', label: 'Mantener' },
-];
+const INPUT = [
+  'w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white',
+  'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400',
+  'focus:border-transparent transition-colors min-h-[44px]',
+].join(' ');
 
-const inputClass = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
+const SELECT = INPUT + ' appearance-none cursor-pointer pr-10';
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
-      <h2 className="font-semibold text-gray-900 mb-4 text-sm md:text-base">{title}</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {children}
+    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 7 }}>
+      {children}
+      {required && <span style={{ color: '#EF4444', marginLeft: 3 }}>*</span>}
+    </label>
+  );
+}
+
+function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '24px 28px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid #F8FAFC' }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          {icon}
+        </div>
+        <h2 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em' }}>{title}</h2>
       </div>
+      {children}
     </div>
   );
 }
 
-function Field({ label, required, children, full }: { label: string; required?: boolean; children: React.ReactNode; full?: boolean }) {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
-    <div className={full ? 'sm:col-span-2' : ''}>
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-        {label}{required && ' *'}
-      </label>
+    <button type="button" onClick={onChange} aria-pressed={checked}
+      style={{ width: 44, height: 24, borderRadius: 99, border: 'none', padding: 2, cursor: 'pointer', flexShrink: 0,
+        background: checked ? '#EF4444' : '#E5E7EB', transition: 'background 0.2s ease' }}>
+      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.18)', transition: 'transform 0.2s ease',
+        transform: checked ? 'translateX(20px)' : 'translateX(0)' }} />
+    </button>
+  );
+}
+
+function SelectWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ position: 'relative' }}>
       {children}
+      <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2 4l4 4 4-4" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
     </div>
   );
 }
@@ -47,35 +74,40 @@ export function StudentForm({ student }: StudentFormProps) {
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  const localToday = () => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  };
+
   const [form, setForm] = useState({
-    firstName:      student?.firstName ?? '',
-    lastName:       student?.lastName ?? '',
-    cedula:         (student as any)?.cedula ?? '',
-    email:          student?.email ?? '',
-    phone:          student?.phone ?? '',
-    birthDate:      student?.birthDate ? student.birthDate.slice(0, 10) : '',
-    joinDate:       student?.joinDate ? student.joinDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
-    billingDay:     student?.billingDay ?? 1,
-    height:         student?.height ?? '',
-    initialWeight:  student?.initialWeight ?? '',
-    goal:           (student?.goal ?? 'MAINTAIN') as StudentGoal,
-    monthlyGoalKg:  student?.monthlyGoalKg ?? '',
-    status:         student?.status ?? 'ACTIVE',
-    notes:          student?.notes ?? '',
-    planId:         student?.planId ?? '',
-    // Salud
-    allergies:      (student as any)?.allergies ?? '',
-    isCeliac:       (student as any)?.isCeliac ?? false,
-    trackHeight:    (student as any)?.trackHeight ?? false,
-    // Medidas
-    waist:          (student as any)?.waist ?? '',
-    abdomen:        (student as any)?.abdomen ?? '',
-    arms:           (student as any)?.arms ?? '',
-    legs:           (student as any)?.legs ?? '',
-    glutes:         (student as any)?.glutes ?? '',
+    firstName:     student?.firstName ?? '',
+    lastName:      student?.lastName ?? '',
+    cedula:        (student as any)?.cedula ?? '',
+    email:         student?.email ?? '',
+    phone:         student?.phone ?? '',
+    birthDate:     student?.birthDate ? student.birthDate.slice(0, 10) : '',
+    joinDate:      student?.joinDate ? student.joinDate.slice(0, 10) : localToday(),
+    billingDay:    student?.billingDay ?? 1,
+    status:        student?.status ?? 'ACTIVE',
+    notes:         student?.notes ?? '',
+    planId:        student?.planId ?? '',
+    allergies:     (student as any)?.allergies ?? '',
+    isCeliac:      (student as any)?.isCeliac ?? false,
+    // kept for API compatibility
+    goal:          (student?.goal ?? 'MAINTAIN') as StudentGoal,
+    height:        student?.height ?? '',
+    initialWeight: student?.initialWeight ?? '',
+    monthlyGoalKg: student?.monthlyGoalKg ?? '',
+    waist:         (student as any)?.waist ?? '',
+    abdomen:       (student as any)?.abdomen ?? '',
+    arms:          (student as any)?.arms ?? '',
+    legs:          (student as any)?.legs ?? '',
+    glutes:        (student as any)?.glutes ?? '',
+    trackHeight:   (student as any)?.trackHeight ?? false,
   });
 
   const { data: plans = [] } = useQuery({ queryKey: ['plans'], queryFn: plansService.getAll });
+  const selectedPlan = plans.find((p) => p.id === form.planId);
 
   const set = (field: string, value: string | number | boolean) =>
     setForm((f) => ({ ...f, [field]: value }));
@@ -112,142 +144,177 @@ export function StudentForm({ student }: StudentFormProps) {
     onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
   });
 
+  const tips = [
+    'Los campos marcados con * son obligatorios.',
+    'Puedes completar la fecha de nacimiento más adelante.',
+    'El historial de pagos comenzará a registrarse desde que empieces a usar el sistema.',
+    'La información puede editarse posteriormente.',
+  ];
+
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }} className="space-y-4 max-w-2xl">
+      <form onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24, alignItems: 'start' }}
+          className="lg:grid-cols-[1fr_288px]">
 
-        {/* Datos personales */}
-        <Section title="Datos personales">
-          <Field label="Nombre" required>
-            <input type="text" required value={form.firstName} onChange={(e) => set('firstName', e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Apellido" required>
-            <input type="text" required value={form.lastName} onChange={(e) => set('lastName', e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Cédula" required>
-            <input type="text" required value={form.cedula} onChange={(e) => set('cedula', e.target.value)} className={inputClass} placeholder="Ej: V-12345678" />
-          </Field>
-          <Field label="Email">
-            <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Teléfono">
-            <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Fecha de nacimiento">
-            <input type="date" lang="es" value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Estado">
-            <select value={form.status} onChange={(e) => set('status', e.target.value)} className={inputClass}>
-              <option value="ACTIVE">Activo</option>
-              <option value="INACTIVE">Inactivo</option>
-            </select>
-          </Field>
-        </Section>
+          {/* ── LEFT: form cards ─────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* Plan y cobro */}
-        <Section title="Plan y cobro">
-          <Field label="Plan" required>
-            <select required value={form.planId} onChange={(e) => set('planId', e.target.value)} className={inputClass}>
-              <option value="">Seleccioná un plan</option>
-              {plans.map((p) => <option key={p.id} value={p.id}>{p.name} — ${p.price}</option>)}
-            </select>
-          </Field>
-          <Field label="Día de cobro (1-31)" required>
-            <input type="number" required min={1} max={31} value={form.billingDay} onChange={(e) => set('billingDay', e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Fecha de ingreso" required>
-            <input type="date" lang="es" required value={form.joinDate} onChange={(e) => set('joinDate', e.target.value)} className={inputClass} />
-          </Field>
-        </Section>
-
-        {/* Físico y metas — oculto temporalmente, descomentar para reactivar
-        <Section title="Físico y metas">
-          <Field label="Altura (cm)">
-            <input type="number" value={form.height} onChange={(e) => set('height', e.target.value)} className={inputClass} placeholder="Ej: 175" />
-          </Field>
-          <Field label="">
-            <label className="flex items-center gap-3 cursor-pointer mt-1">
-              <div
-                onClick={() => set('trackHeight', !form.trackHeight)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${(form as any).trackHeight ? 'bg-brand-600' : 'bg-gray-200'}`}
-              >
-                <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${(form as any).trackHeight ? 'translate-x-5' : ''}`} />
+            {/* DATOS PERSONALES */}
+            <Card icon={<User style={{ width: 16, height: 16, color: '#EF4444' }} />} title="Datos Personales">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <Label required>Nombre</Label>
+                  <input required type="text" value={form.firstName}
+                    onChange={(e) => set('firstName', e.target.value)}
+                    className={INPUT} placeholder="Juan" />
+                </div>
+                <div>
+                  <Label required>Apellido</Label>
+                  <input required type="text" value={form.lastName}
+                    onChange={(e) => set('lastName', e.target.value)}
+                    className={INPUT} placeholder="Pérez" />
+                </div>
+                <div>
+                  <Label required>Cédula</Label>
+                  <input required type="text" value={form.cedula}
+                    onChange={(e) => set('cedula', e.target.value)}
+                    className={INPUT} placeholder="V-12345678" />
+                </div>
+                <div>
+                  <Label required>Teléfono</Label>
+                  <input required type="tel" value={form.phone}
+                    onChange={(e) => set('phone', e.target.value)}
+                    className={INPUT} placeholder="0412-1234567" />
+                </div>
+                <div>
+                  <Label>Correo electrónico</Label>
+                  <input type="email" value={form.email}
+                    onChange={(e) => set('email', e.target.value)}
+                    className={INPUT} placeholder="ejemplo@email.com" />
+                </div>
+                <div>
+                  <Label>Fecha de nacimiento</Label>
+                  <input type="date" lang="es" value={form.birthDate}
+                    onChange={(e) => set('birthDate', e.target.value)}
+                    className={INPUT} />
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-700">Registrar estatura en el tiempo</span>
-            </label>
-          </Field>
-          {!isEditing && (
-            <Field label="Peso inicial (kg)">
-              <input type="number" step="0.1" value={form.initialWeight} onChange={(e) => set('initialWeight', e.target.value)} className={inputClass} placeholder="Ej: 70.5" />
-            </Field>
-          )}
-          <Field label="Meta" required>
-            <select required value={form.goal} onChange={(e) => set('goal', e.target.value)} className={inputClass}>
-              {GOAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </Field>
-          <Field label="Meta mensual (kg)">
-            <input type="number" step="0.1" value={form.monthlyGoalKg} onChange={(e) => set('monthlyGoalKg', e.target.value)} className={inputClass} placeholder="Ej: 2" />
-          </Field>
-        </Section>
-        */}
+            </Card>
 
-        {/* Medidas corporales — oculto temporalmente, descomentar para reactivar
-        <Section title="Medidas corporales (cm)">
-          <Field label="Cintura">
-            <input type="number" step="0.1" value={form.waist} onChange={(e) => set('waist', e.target.value)} className={inputClass} placeholder="cm" />
-          </Field>
-          <Field label="Abdomen">
-            <input type="number" step="0.1" value={form.abdomen} onChange={(e) => set('abdomen', e.target.value)} className={inputClass} placeholder="cm" />
-          </Field>
-          <Field label="Brazos">
-            <input type="number" step="0.1" value={form.arms} onChange={(e) => set('arms', e.target.value)} className={inputClass} placeholder="cm" />
-          </Field>
-          <Field label="Piernas">
-            <input type="number" step="0.1" value={form.legs} onChange={(e) => set('legs', e.target.value)} className={inputClass} placeholder="cm" />
-          </Field>
-          <Field label="Glúteos">
-            <input type="number" step="0.1" value={form.glutes} onChange={(e) => set('glutes', e.target.value)} className={inputClass} placeholder="cm" />
-          </Field>
-        </Section>
-        */}
+            {/* PLAN Y COBRO */}
+            <Card icon={<CreditCard style={{ width: 16, height: 16, color: '#EF4444' }} />} title="Plan y Cobro">
+              <div className="grid sm:grid-cols-2 gap-4">
 
-        {/* Salud */}
-        <Section title="Salud">
-          <Field label="Alergias" full>
-            <input type="text" value={form.allergies} onChange={(e) => set('allergies', e.target.value)} className={inputClass} placeholder="Ej: maní, lactosa, gluten..." />
-          </Field>
-          <Field label="" full>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <div
-                onClick={() => set('isCeliac', !form.isCeliac)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${form.isCeliac ? 'bg-brand-600' : 'bg-gray-200'}`}
-              >
-                <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.isCeliac ? 'translate-x-5' : ''}`} />
+                {/* Plan selector — full width */}
+                <div className="sm:col-span-2">
+                  <Label required>Plan</Label>
+                  <SelectWrapper>
+                    <select required value={form.planId}
+                      onChange={(e) => set('planId', e.target.value)}
+                      className={SELECT}>
+                      <option value="">Selecciona un plan...</option>
+                      {plans.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </SelectWrapper>
+
+                  {/* Dynamic price display */}
+                  {selectedPlan && (
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#F0FDF4', borderRadius: 10, border: '1px solid #BBF7D0' }}>
+                      <DollarSign style={{ width: 13, height: 13, color: '#16a34a', flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>${selectedPlan.price} USD / mes</span>
+                      {selectedPlan.description && (
+                        <span style={{ fontSize: 11, color: '#4B7A5A', marginLeft: 2 }}>· {selectedPlan.description}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label required>Fecha de ingreso</Label>
+                  <input required type="date" lang="es" value={form.joinDate}
+                    onChange={(e) => set('joinDate', e.target.value)}
+                    className={INPUT} />
+                </div>
+
+                <div>
+                  <Label required>Día de cobro (1–31)</Label>
+                  <input required type="number" min={1} max={31} value={form.billingDay}
+                    onChange={(e) => set('billingDay', e.target.value)}
+                    className={INPUT} placeholder="Ej: 5" />
+                  <p style={{ fontSize: 11, color: '#9CA3AF', marginTop: 7, lineHeight: 1.4 }}>
+                    Indica qué día del mes debe realizarse el pago.
+                  </p>
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-700">Es celíaco/a</span>
-            </label>
-          </Field>
-        </Section>
+            </Card>
 
-        {/* Notas */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6">
-          <h2 className="font-semibold text-gray-900 mb-4 text-sm md:text-base">Notas</h2>
-          <textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} rows={3}
-            className={inputClass + ' resize-none'} placeholder="Observaciones sobre el alumno..." />
-        </div>
+            {/* INFORMACIÓN ADICIONAL */}
+            <Card icon={<ClipboardList style={{ width: 16, height: 16, color: '#EF4444' }} />} title="Información Adicional">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <Label>Alergias</Label>
+                  <input type="text" value={form.allergies}
+                    onChange={(e) => set('allergies', e.target.value)}
+                    className={INPUT} placeholder="Ej: maní, lactosa, gluten..." />
+                </div>
 
-        <div className="flex gap-3">
-          <button type="button" onClick={() => router.back()}
-            className="flex-1 sm:flex-none px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Cancelar
-          </button>
-          <button type="submit" disabled={mutation.isPending}
-            className="flex-1 sm:flex-none px-6 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
-            {mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear alumno'}
-          </button>
+                {/* Celiac toggle row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#F8FAFC', borderRadius: 12, border: '1px solid #F1F5F9' }}>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: 0 }}>Es celíaco/a</p>
+                    <p style={{ fontSize: 11, color: '#9CA3AF', margin: '3px 0 0' }}>Intolerancia al gluten</p>
+                  </div>
+                  <Toggle checked={form.isCeliac} onChange={() => set('isCeliac', !form.isCeliac)} />
+                </div>
+
+                <div>
+                  <Label>Observaciones</Label>
+                  <textarea value={form.notes}
+                    onChange={(e) => set('notes', e.target.value)}
+                    rows={3} className={INPUT + ' resize-none'}
+                    placeholder="Observaciones sobre el alumno..." />
+                </div>
+              </div>
+            </Card>
+
+            {/* ACTION BUTTONS */}
+            <div style={{ display: 'flex', gap: 12, paddingTop: 4, paddingBottom: 16 }}>
+              <button type="button" onClick={() => router.back()}
+                style={{ padding: '12px 22px', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button type="submit" disabled={mutation.isPending}
+                style={{ flex: 1, padding: '12px 24px', borderRadius: 12, border: 'none', fontSize: 13, fontWeight: 700, color: '#fff', cursor: mutation.isPending ? 'not-allowed' : 'pointer', background: mutation.isPending ? '#FCA5A5' : '#EF4444', boxShadow: mutation.isPending ? 'none' : '0 4px 14px rgba(239,68,68,0.28)', transition: 'background 0.15s' }}>
+                {mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Guardar alumno'}
+              </button>
+            </div>
+          </div>
+
+          {/* ── RIGHT: help card (sticky) ─────────────────────── */}
+          <div style={{ position: 'sticky', top: 24 }}>
+            <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '22px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 18 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 9, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Info style={{ width: 14, height: 14, color: '#3B82F6' }} />
+                </div>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: '#111827', margin: 0 }}>Información importante</h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+                {tips.map((tip, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <CheckCircle2 style={{ width: 14, height: 14, color: '#10B981', marginTop: 1, flexShrink: 0 }} />
+                    <p style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.55, margin: 0 }}>{tip}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
       </form>
     </>
