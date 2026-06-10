@@ -383,7 +383,7 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
                 const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
                 const prev = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
                 return (
-                  <tr key={student.id} className="group hover:bg-gray-50/60 transition-colors">
+                  <tr key={student.id} className="group hover:bg-slate-50 transition-colors cursor-pointer">
                     <td className="px-5 py-4">
                       <Link href={`/students/${student.id}`} className="block">
                         <p className="text-sm font-semibold text-gray-900 group-hover:text-brand-700 leading-tight">{student.firstName} {student.lastName}</p>
