@@ -285,7 +285,7 @@ export function StudentForm({ student }: StudentFormProps) {
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: 12, paddingTop: 4, paddingBottom: 16 }}>
               <button type="button" onClick={() => router.back()}
-                style={{ padding: '12px 22px', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '12px 24px', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
                 Cancelar
               </button>
               <button type="submit" disabled={mutation.isPending}
