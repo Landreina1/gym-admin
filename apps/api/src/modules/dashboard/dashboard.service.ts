@@ -14,10 +14,16 @@ export class DashboardService {
 
     const planSelect = { select: { id: true, name: true, price: true } };
 
+    const overdueWhere = {
+      status: 'ACTIVE' as const,
+      payments: { none: { periodEnd: { gte: today } } },
+    };
+
     const [
       totalStudents,
       activeStudents,
       inactiveStudents,
+      overdueCount,
       recentWeights,
       dueSoonRaw,
       overdueRaw,
@@ -25,6 +31,7 @@ export class DashboardService {
       this.prisma.student.count(),
       this.prisma.student.count({ where: { status: 'ACTIVE' } }),
       this.prisma.student.count({ where: { status: 'INACTIVE' } }),
+      this.prisma.student.count({ where: overdueWhere }),
       this.prisma.weightRecord.findMany({
         orderBy: { recordedAt: 'desc' },
         take: 20,
@@ -45,24 +52,20 @@ export class DashboardService {
             take: 1,
           },
         },
-        take: 15,
       }),
-      // OVERDUE: no active payment
+      // OVERDUE: no active payment — limited to 50 for display
       this.prisma.student.findMany({
-        where: {
-          status: 'ACTIVE',
-          payments: { none: { periodEnd: { gte: today } } },
-        },
+        where: overdueWhere,
         include: {
           plan: planSelect,
           payments: { select: { periodEnd: true }, orderBy: { periodEnd: 'desc' }, take: 1 },
         },
-        take: 15,
+        orderBy: { lastName: 'asc' },
+        take: 50,
       }),
     ]);
 
-    const overdueStudents = overdueRaw.length;
-    const upToDateStudents = activeStudents - overdueStudents;
+    const upToDateStudents = Math.max(0, activeStudents - overdueCount);
 
     // Build unified dueSoon list: overdue first (most urgent), then expiring soon
     const dueSoon = [
@@ -84,7 +87,7 @@ export class DashboardService {
         active: activeStudents,
         inactive: inactiveStudents,
         upToDate: upToDateStudents,
-        overdue: overdueStudents,
+        overdue: overdueCount,
       },
       dueSoon,
       recentWeightChanges: recentWeights,

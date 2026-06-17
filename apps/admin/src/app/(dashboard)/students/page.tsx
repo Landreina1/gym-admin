@@ -150,8 +150,8 @@ export default function StudentsPage() {
 
         {/* Collapsible mobile filters */}
         {filtersOpen && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3">
-            <div className="relative">
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3 overflow-hidden">
+            <div className="relative w-full">
               <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={cn(selectClass, status && 'border-brand-400 text-brand-700 bg-brand-50')}>
                 <option value="">Todos los estados</option>
                 <option value="ACTIVE">Activo</option>
@@ -159,7 +159,7 @@ export default function StudentsPage() {
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             </div>
-            <div className="relative">
+            <div className="relative w-full">
               <select value={planId} onChange={(e) => { setPlanId(e.target.value); setPage(1); }} className={cn(selectClass, planId && 'border-brand-400 text-brand-700 bg-brand-50')}>
                 <option value="">Todos los planes</option>
                 {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}

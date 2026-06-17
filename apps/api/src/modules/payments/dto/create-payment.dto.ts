@@ -11,11 +11,6 @@ export class CreatePaymentDto {
   @IsNumber()
   amount: number;
 
-  @ApiPropertyOptional()
-  @IsNumber()
-  @IsOptional()
-  totalAmount?: number;
-
   @ApiProperty({ description: 'Fecha en que se realizó el pago' })
   @IsDateString()
   paidAt: string;

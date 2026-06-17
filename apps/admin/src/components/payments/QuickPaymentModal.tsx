@@ -97,7 +97,6 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
       return paymentsService.create({
         studentId:     student.id,
         amount:        finalAmountUSD,
-        totalAmount:   planPrice || undefined,
         paymentType:   tab === 'full' ? 'FULL' : 'PARTIAL',
         paidAt,
         periodStart:   paidAt,
@@ -164,8 +163,8 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
           to   { opacity: 1; transform: none; }
         }
         @media (max-width: 520px) {
-          .qpm-overlay { padding: 0 !important; align-items: flex-end !important; }
-          .qpm-card    { border-radius: 20px 20px 0 0 !important; max-width: 100% !important; }
+          .qpm-overlay { padding: 0 !important; align-items: flex-end !important; backdrop-filter: none !important; }
+          .qpm-card    { border-radius: 20px 20px 0 0 !important; max-width: 100% !important; box-shadow: 0 -4px 24px rgba(0,0,0,0.12) !important; }
         }
       `}</style>
 

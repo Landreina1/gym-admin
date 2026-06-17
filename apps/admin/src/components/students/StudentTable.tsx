@@ -188,12 +188,6 @@ function StudentCard({ student, onWeight, onPayment, onDelete, onSuspend }: {
       {/* Action buttons */}
       <div className="flex gap-2 pt-0.5">
         <button
-          onClick={onWeight}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-        >
-          <Scale className="w-3.5 h-3.5" /> Peso
-        </button>
-        <button
           onClick={onPayment}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-brand-600 text-white rounded-xl text-xs font-medium hover:bg-brand-700 active:bg-brand-800 transition-colors"
         >

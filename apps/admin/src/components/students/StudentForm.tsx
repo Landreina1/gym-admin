@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { User, CreditCard, ClipboardList, CheckCircle2, Info, DollarSign } from 'lucide-react';
+import { User, CreditCard, CheckCircle2, Info, DollarSign } from 'lucide-react';
 import { studentsService } from '@/services/students.service';
 import { plansService } from '@/services/plans.service';
 import type { Student, StudentGoal } from '@/types';
@@ -115,22 +115,21 @@ export function StudentForm({ student }: StudentFormProps) {
   const mutation = useMutation({
     mutationFn: () => {
       const payload = {
-        ...form,
+        firstName:     form.firstName,
+        lastName:      form.lastName,
+        cedula:        form.cedula,
+        email:         form.email      || undefined,
+        phone:         form.phone      || undefined,
+        birthDate:     form.birthDate  || undefined,
+        joinDate:      form.joinDate   || undefined,
         billingDay:    Number(form.billingDay),
+        status:        form.status,
+        planId:        form.planId,
+        goal:          form.goal,
+        notes:         form.notes      || undefined,
         height:        form.height        ? Number(form.height)        : undefined,
         initialWeight: form.initialWeight ? Number(form.initialWeight) : undefined,
         monthlyGoalKg: form.monthlyGoalKg ? Number(form.monthlyGoalKg) : undefined,
-        waist:         form.waist         ? Number(form.waist)         : undefined,
-        abdomen:       form.abdomen       ? Number(form.abdomen)       : undefined,
-        arms:          form.arms          ? Number(form.arms)          : undefined,
-        legs:          form.legs          ? Number(form.legs)          : undefined,
-        glutes:        form.glutes        ? Number(form.glutes)        : undefined,
-        birthDate:     form.birthDate  || undefined,
-        joinDate:      form.joinDate   || undefined,
-        email:         form.email      || undefined,
-        phone:         form.phone      || undefined,
-        notes:         form.notes      || undefined,
-        allergies:     form.allergies  || undefined,
       };
       if (isEditing) return studentsService.update(student.id, payload);
       return studentsService.create(payload);
@@ -253,7 +252,7 @@ export function StudentForm({ student }: StudentFormProps) {
               </div>
             </Card>
 
-            {/* INFORMACIÓN ADICIONAL */}
+            {/* INFORMACIÓN ADICIONAL — comentado para futuro uso
             <Card icon={<ClipboardList style={{ width: 16, height: 16, color: '#EF4444' }} />} title="Información Adicional">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
@@ -262,8 +261,6 @@ export function StudentForm({ student }: StudentFormProps) {
                     onChange={(e) => set('allergies', e.target.value)}
                     className={INPUT} placeholder="Ej: maní, lactosa, gluten..." />
                 </div>
-
-                {/* Celiac toggle row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#F8FAFC', borderRadius: 12, border: '1px solid #F1F5F9' }}>
                   <div>
                     <p style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: 0 }}>Es celíaco/a</p>
@@ -271,7 +268,6 @@ export function StudentForm({ student }: StudentFormProps) {
                   </div>
                   <Toggle checked={form.isCeliac} onChange={() => set('isCeliac', !form.isCeliac)} />
                 </div>
-
                 <div>
                   <Label>Observaciones</Label>
                   <textarea value={form.notes}
@@ -281,6 +277,7 @@ export function StudentForm({ student }: StudentFormProps) {
                 </div>
               </div>
             </Card>
+            */}
 
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: 12, paddingTop: 4, paddingBottom: 16 }}>

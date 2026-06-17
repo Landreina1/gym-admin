@@ -238,7 +238,7 @@ export default function StudentDetailPage() {
                     <div className="divide-y divide-gray-50">
                       {sortedGroups.map(([periodEnd, pmts]) => {
                         const totalPaid = pmts.reduce((s, p) => s + Number(p.amount), 0);
-                        const totalAmount = Number(pmts[0].totalAmount ?? pmts[0].amount);
+                        const totalAmount = Number(pmts[0].amount);
                         const isComplete = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
                         const isExpandable = pmts.length > 1 || !isComplete;
                         const isExpanded = expandedPeriods.has(periodEnd);

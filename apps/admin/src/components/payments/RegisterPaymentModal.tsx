@@ -149,7 +149,6 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
       return paymentsService.create({
         studentId:     student.id,
         amount:        finalAmountUSD,
-        totalAmount:   planPrice,
         paymentType:   tab === 'full' ? 'FULL' : 'PARTIAL',
         paidAt,
         periodStart:   paidAt,

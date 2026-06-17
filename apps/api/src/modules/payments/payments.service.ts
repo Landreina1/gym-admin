@@ -12,10 +12,15 @@ export class PaymentsService {
 
     return this.prisma.payment.create({
       data: {
-        ...dto,
-        paidAt: new Date(dto.paidAt),
-        periodStart: new Date(dto.periodStart),
-        periodEnd: new Date(dto.periodEnd),
+        studentId:     dto.studentId,
+        amount:        dto.amount,
+        paidAt:        new Date(dto.paidAt),
+        periodStart:   new Date(dto.periodStart),
+        periodEnd:     new Date(dto.periodEnd),
+        status:        dto.status,
+        paymentType:   dto.paymentType,
+        paymentMethod: dto.paymentMethod,
+        notes:         dto.notes,
       },
       include: { student: { select: { firstName: true, lastName: true } } },
     });
