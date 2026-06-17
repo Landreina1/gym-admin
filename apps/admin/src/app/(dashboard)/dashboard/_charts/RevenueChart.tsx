@@ -7,6 +7,7 @@ import {
 
 interface Props {
   data: { label: string; total: number }[];
+  height?: number;
 }
 
 function fmt(n: number) {
@@ -15,13 +16,13 @@ function fmt(n: number) {
   return n === 0 ? '$0' : `$${n}`;
 }
 
-export default function RevenueChart({ data }: Props) {
+export default function RevenueChart({ data, height = 192 }: Props) {
   const hasData = data.some((d) => d.total > 0);
 
   if (!hasData) {
     return (
       <div style={{
-        height: 192, display: 'flex', flexDirection: 'column',
+        height, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', gap: 6,
       }}>
         <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>Sin ingresos registrados</p>
@@ -31,7 +32,7 @@ export default function RevenueChart({ data }: Props) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={192}>
+    <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">

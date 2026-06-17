@@ -39,6 +39,7 @@ export class DashboardService {
         include: {
           plan: planSelect,
           payments: {
+            select: { periodEnd: true },
             where: { periodEnd: { gte: today, lte: in3Days } },
             orderBy: { periodEnd: 'asc' },
             take: 1,
@@ -54,7 +55,7 @@ export class DashboardService {
         },
         include: {
           plan: planSelect,
-          payments: { orderBy: { periodEnd: 'desc' }, take: 1 },
+          payments: { select: { periodEnd: true }, orderBy: { periodEnd: 'desc' }, take: 1 },
         },
         take: 15,
       }),

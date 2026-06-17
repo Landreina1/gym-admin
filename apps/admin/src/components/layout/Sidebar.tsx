@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, CreditCard,
-  Settings, Dumbbell, PackageOpen, X, Salad,
+  Settings, PackageOpen, X,
 } from 'lucide-react';
 import { useSidebar } from '@/context/sidebar.context';
 
@@ -13,7 +13,7 @@ const navItems = [
   { href: '/students',  label: 'Alumnos', icon: Users },
   { href: '/payments',  label: 'Pagos',   icon: CreditCard },
   { href: '/planes',    label: 'Planes',  icon: PackageOpen },
-  { href: '/dietas',    label: 'Dietas',  icon: Salad },
+  // { href: '/dietas', label: 'Dietas', icon: Salad }, // oculto hasta futuro
 ];
 
 function NavItem({ href, label, icon: Icon, isActive, onClick }: {

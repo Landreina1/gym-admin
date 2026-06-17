@@ -1,6 +1,6 @@
 'use client';
 
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 interface Props {
   data: { status: string; count: number; color: string }[];
@@ -42,13 +42,6 @@ export default function StatusChart({ data }: Props) {
                 <Cell key={entry.status} fill={entry.color} />
               ))}
             </Pie>
-            <Tooltip
-              formatter={(val: number, name: string) => [`${val} alumnos`, name]}
-              contentStyle={{
-                borderRadius: 12, border: '1px solid #e8edf2', fontSize: 11,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.08)', padding: '6px 12px',
-              }}
-            />
           </PieChart>
         </ResponsiveContainer>
         {/* Total in center */}

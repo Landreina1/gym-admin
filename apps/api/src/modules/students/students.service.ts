@@ -48,7 +48,7 @@ export class StudentsService {
         include: {
           plan: true,
           weightRecords: { orderBy: { recordedAt: 'desc' }, take: 2 },
-          payments: { orderBy: { paidAt: 'desc' }, take: 20 },
+          payments: { select: { periodEnd: true, amount: true }, orderBy: { paidAt: 'desc' }, take: 20 },
         },
         orderBy: { lastName: 'asc' },
         skip,
@@ -72,7 +72,7 @@ export class StudentsService {
       include: {
         plan: true,
         weightRecords: { orderBy: { recordedAt: 'desc' } },
-        payments: { orderBy: { paidAt: 'desc' }, take: 10 },
+        payments: { select: { id: true, amount: true, periodStart: true, periodEnd: true, paidAt: true, paymentType: true, status: true, paymentMethod: true, notes: true }, orderBy: { paidAt: 'desc' }, take: 10 },
       },
     });
 
@@ -157,7 +157,7 @@ export class StudentsService {
     );
 
     const totalPaid = periodPmts.reduce((s: number, p: any) => s + Number(p.amount), 0);
-    const totalAmount = Number(periodPmts[0].totalAmount ?? periodPmts[0].amount);
+    const totalAmount = Number(periodPmts[0].amount);
     const isPaid = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
 
     return {

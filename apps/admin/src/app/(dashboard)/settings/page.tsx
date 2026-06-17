@@ -26,7 +26,17 @@ export default function SettingsPage() {
 
   const profileMutation = useMutation({
     mutationFn: () => api.patch('/auth/me', { name: profileForm.name, email: profileForm.email }),
-    onSuccess: () => setToast({ message: 'Perfil actualizado', type: 'success' }),
+    onSuccess: () => {
+      const raw = localStorage.getItem('gym_user');
+      if (raw) {
+        try {
+          const stored = JSON.parse(raw);
+          localStorage.setItem('gym_user', JSON.stringify({ ...stored, name: profileForm.name, email: profileForm.email }));
+          window.dispatchEvent(new Event('gym-user-updated'));
+        } catch {}
+      }
+      setToast({ message: 'Perfil actualizado', type: 'success' });
+    },
     onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
   });
 

@@ -59,6 +59,7 @@ export class PaymentsService {
       include: {
         plan: true,
         payments: {
+          select: { periodEnd: true },
           where: { periodEnd: { gte: today, lte: limit } },
           orderBy: { periodEnd: 'asc' },
           take: 1,
@@ -133,7 +134,7 @@ export class PaymentsService {
       where: { status: 'ACTIVE' },
       include: {
         plan: true,
-        payments: { orderBy: { paidAt: 'desc' }, take: 20 },
+        payments: { select: { periodEnd: true, amount: true, paidAt: true }, orderBy: { paidAt: 'desc' }, take: 20 },
       },
       orderBy: { lastName: 'asc' },
     });
@@ -165,7 +166,7 @@ export class PaymentsService {
           currentPeriodEnd = latestKey;
 
           const totalPaid = periodPmts.reduce((sum, p) => sum + Number(p.amount), 0);
-          const totalAmount = Number(periodPmts[0].totalAmount ?? periodPmts[0].amount);
+          const totalAmount = Number(periodPmts[0].amount);
           const isPaid = totalAmount <= 0 || totalPaid >= totalAmount - 0.01;
 
           if (!isPaid) {

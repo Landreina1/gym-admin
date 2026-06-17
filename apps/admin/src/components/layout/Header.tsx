@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Bell, LogOut, ChevronDown,
+  LogOut, ChevronDown,
   Settings, Dumbbell, Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,15 @@ export function Header() {
   }, [pathname]);
 
   useEffect(() => {
+    function syncUser() {
+      const raw = localStorage.getItem('gym_user');
+      if (raw) { try { setUser(JSON.parse(raw)); } catch {} }
+    }
+    window.addEventListener('gym-user-updated', syncUser);
+    return () => window.removeEventListener('gym-user-updated', syncUser);
+  }, []);
+
+  useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
@@ -77,11 +86,6 @@ export function Header() {
 
       {/* Right */}
       <div className="flex items-center gap-2">
-        <button className="relative p-2 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
-        </button>
-
         {/* User menu */}
         <div className="relative" ref={ref}>
           <button

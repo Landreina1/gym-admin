@@ -220,7 +220,7 @@ export default function StudentDetailPage() {
                         : 'border-transparent text-gray-400 hover:text-gray-600',
                     )}
                   >
-                    {tab === 'periods' ? 'Períodos' : 'Pagos'}
+                    {tab === 'periods' ? 'Mensualidades' : 'Pagos'}
                   </button>
                 ))}
               </div>

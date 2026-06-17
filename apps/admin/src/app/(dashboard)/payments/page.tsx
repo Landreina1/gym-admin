@@ -14,6 +14,7 @@ import {
 import { paymentsService } from '@/services/payments.service';
 import { Toast } from '@/components/ui/Toast';
 import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
+import { QuickPaymentModal } from '@/components/payments/QuickPaymentModal';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import { exportPdf } from '@/lib/export';
 import type { StudentForPayments } from '@/types';
@@ -82,6 +83,7 @@ function MethodPill({ method }: { method: string | null | undefined }) {
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
   const [selectedStudent, setSelectedStudent] = useState<StudentForPayments | null>(null);
+  const [quickPayModal, setQuickPayModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE'>('ALL');
@@ -168,6 +170,7 @@ export default function PaymentsPage() {
         onClose={() => setSelectedStudent(null)}
         onSuccess={() => setToast({ message: 'Pago registrado correctamente', type: 'success' })}
       />
+      {quickPayModal && <QuickPaymentModal onClose={() => setQuickPayModal(false)} />}
 
       <div className="space-y-5">
 
@@ -185,6 +188,14 @@ export default function PaymentsPage() {
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Exportar PDF</span>
+            </button>
+            <button
+              onClick={() => setQuickPayModal(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors"
+              style={{ boxShadow: '0 4px 14px rgba(239,68,68,0.28)' }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Registrar pago
             </button>
             <button onClick={() => setShowCharts((v) => !v)}
               className="text-xs text-gray-400 hover:text-gray-600 mt-1">
