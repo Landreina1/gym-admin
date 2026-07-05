@@ -221,12 +221,11 @@ export default function PlanesPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Precio *</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 required
-                min="0"
-                step="0.01"
                 value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                onChange={(e) => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v)) setForm((f) => ({ ...f, price: v.replace(',', '.') })); }}
                 className={inputClass}
                 placeholder="Ej: 15000"
               />

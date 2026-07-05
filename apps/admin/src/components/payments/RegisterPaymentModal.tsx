@@ -281,7 +281,8 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
               <div>
                 <label style={lbl}>Tasa de cambio (Bs/USD) *</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <input type="number" step="0.01" min="0" value={bcvRate} onChange={(e) => setBcvRate(e.target.value)}
+                  <input type="text" inputMode="decimal" value={bcvRate}
+                    onChange={(e) => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v)) setBcvRate(v.replace(',', '.')); }}
                     placeholder="Ej: 91.45" className={inp} style={{ flex: 1 }} />
                   <button type="button" onClick={fetchBcv} disabled={loadingBcv} title="Actualizar tasa BCV"
                     style={{ padding: '0 12px', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6B7280', whiteSpace: 'nowrap' }}>
@@ -316,8 +317,8 @@ export function RegisterPaymentModal({ student, onClose, onSuccess, pendingMode,
             ) : (
               <div>
                 <label style={lbl}>{showBs ? 'Monto recibido (Bs) *' : 'Monto recibido (USD) *'}</label>
-                <input type="number" min="0.01" step="0.01" required value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                <input type="text" inputMode="decimal" required value={amount}
+                  onChange={(e) => { const v = e.target.value; if (/^\d*[.,]?\d*$/.test(v)) setAmount(v.replace(',', '.')); }}
                   placeholder={showBs ? (completeBs ? `Máx: ${(maxUSD * rate).toLocaleString('es-VE', { maximumFractionDigits: 2 })} Bs` : 'Ej: 1800') : `Máx: $${maxUSD.toFixed(2)}`}
                   className={inp} autoFocus />
                 {showBs && amount && rate > 0 && (
