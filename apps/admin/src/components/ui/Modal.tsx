@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface ModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ interface ModalProps {
 const maxWidths = { sm: 400, md: 480, lg: 600 };
 
 export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);

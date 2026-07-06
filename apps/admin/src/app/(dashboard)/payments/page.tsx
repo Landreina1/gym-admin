@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertTriangle, Clock, TrendingUp, DollarSign, Plus,
+  TrendingUp, DollarSign, Plus,
   Search, ChevronRight, Wallet, Download,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -15,7 +15,7 @@ import { paymentsService } from '@/services/payments.service';
 import { Toast } from '@/components/ui/Toast';
 import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 import { QuickPaymentModal } from '@/components/payments/QuickPaymentModal';
-import { formatDate, formatCurrency, cn } from '@/lib/utils';
+import { formatDate, formatCurrency } from '@/lib/utils';
 import { exportPdf } from '@/lib/export';
 import type { StudentForPayments } from '@/types';
 
@@ -45,34 +45,19 @@ function fmtShort(n: number) {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function KpiCard({ icon, label, value, sub, color }: {
-  icon: React.ReactNode; label: string; value: string | number; sub?: string; color: string;
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-start gap-3">
-      <div className={cn('p-2.5 rounded-xl flex-shrink-0', color)}>{icon}</div>
-      <div className="min-w-0">
-        <p className="text-xs text-gray-400 mb-0.5 truncate">{label}</p>
-        <p className="text-xl font-bold text-gray-900 leading-none">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-      </div>
-    </div>
-  );
-}
+function Dot({ c }: { c: string }) { return <span style={{ width: 6, height: 6, borderRadius: '50%', background: c }} />; }
 
 function StatusBadge({ status }: { status: StudentForPayments['paymentStatus'] }) {
-  if (status === 'OVERDUE')  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><AlertTriangle className="w-3 h-3" />En mora</span>;
-  if (status === 'DUE_SOON') return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"><Clock className="w-3 h-3" />Próx. venc.</span>;
-  if (status === 'PARTIAL')  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700"><Clock className="w-3 h-3" />Pago parcial</span>;
-  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700"><TrendingUp className="w-3 h-3" />Al día</span>;
+  if (status === 'OVERDUE')  return <span className="ec-badge" style={{ background: '#fdeeed', color: '#E53935' }}><Dot c="#E53935" />En mora</span>;
+  if (status === 'DUE_SOON') return <span className="ec-badge" style={{ background: '#fdf4e7', color: '#b45309' }}><Dot c="#d97706" />Próx. venc.</span>;
+  if (status === 'PARTIAL')  return <span className="ec-badge" style={{ background: '#fdf4e7', color: '#b45309' }}><Dot c="#d97706" />Pago parcial</span>;
+  return <span className="ec-badge" style={{ background: '#e9f6ee', color: '#16a34a' }}><Dot c="#16a34a" />Al día</span>;
 }
 
 function MethodPill({ method }: { method: string | null | undefined }) {
-  if (!method) return <span className="text-xs text-gray-300">—</span>;
-  const color = METHOD_COLOR[method] ?? '#6b7280';
+  if (!method) return <span className="text-xs text-[#c4bcb0]">—</span>;
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border"
-      style={{ borderColor: color + '40', backgroundColor: color + '15', color }}>
+    <span style={{ display: 'inline-flex', padding: '5px 12px', borderRadius: 99, background: '#f0ece6', fontSize: 12, fontWeight: 600, color: '#6b6258' }}>
       {method}
     </span>
   );
@@ -89,7 +74,7 @@ export default function PaymentsPage() {
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'OVERDUE' | 'DUE_SOON' | 'UP_TO_DATE'>('ALL');
   const [filterMethod, setFilterMethod] = useState('ALL');
   const [filterPlan, setFilterPlan] = useState('ALL');
-  const [showCharts, setShowCharts] = useState(true);
+  const [showCharts, setShowCharts] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -172,65 +157,56 @@ export default function PaymentsPage() {
       />
       {quickPayModal && <QuickPaymentModal onClose={() => setQuickPayModal(false)} />}
 
-      <div className="space-y-5">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
         {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Pagos</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Control financiero del gimnasio</p>
+        <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="flex flex-col gap-2">
+            <div className="ec-eyebrow">Cobros y vencimientos</div>
+            <h1 className="ec-h1 !text-[30px] md:!text-[40px]">Pagos</h1>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={handleExport}
-              disabled={filtered.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 bg-white text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-40"
-            >
-              <Download className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => setShowCharts((v) => !v)} className="ec-btn-ghost hidden sm:inline-flex">
+              {showCharts ? 'Ocultar gráficas' : 'Ver gráficas'}
+            </button>
+            <button onClick={handleExport} disabled={filtered.length === 0} className="ec-btn-ghost disabled:opacity-40">
+              <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Exportar PDF</span>
             </button>
-            <button
-              onClick={() => setQuickPayModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-bold hover:bg-red-600 transition-colors"
-              style={{ boxShadow: '0 4px 14px rgba(239,68,68,0.28)' }}
-            >
-              <Plus className="w-3.5 h-3.5" />
+            <button onClick={() => setQuickPayModal(true)} className="ec-btn-primary flex-1 sm:flex-none">
+              <Plus className="w-4 h-4" />
               Registrar pago
-            </button>
-            <button onClick={() => setShowCharts((v) => !v)}
-              className="text-xs text-gray-400 hover:text-gray-600 mt-1">
-              {showCharts ? 'Ocultar gráficas' : 'Ver gráficas'}
             </button>
           </div>
         </div>
 
-        {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard
-            icon={<AlertTriangle className="w-4 h-4 text-red-600" />}
-            label="En mora"
-            value={stats?.kpis.overdue ?? '—'}
-            color="bg-red-50"
-          />
-          <KpiCard
-            icon={<Clock className="w-4 h-4 text-amber-600" />}
-            label="Próx. vencimientos"
-            value={stats?.kpis.dueSoon ?? '—'}
-            sub="próximos 7 días"
-            color="bg-amber-50"
-          />
-          <KpiCard
-            icon={<TrendingUp className="w-4 h-4 text-emerald-600" />}
-            label="Pagados este mes"
-            value={stats?.kpis.paidThisMonth ?? '—'}
-            color="bg-emerald-50"
-          />
-          <KpiCard
-            icon={<DollarSign className="w-4 h-4 text-brand-600" />}
-            label="Recaudación del mes"
-            value={stats ? formatCurrency(stats.kpis.revenueThisMonth) : '—'}
-            color="bg-brand-50"
-          />
+        {/* ── 3 tarjetas resumen ── */}
+        <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr] gap-3 md:gap-4">
+          {/* Ingresos (oscura) */}
+          <div style={{ background: '#1a1a1a', borderRadius: 22, padding: '26px 28px', display: 'flex', flexDirection: 'column', gap: 14, color: '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>Ingresos del mes</div>
+              <div style={{ padding: '5px 12px', borderRadius: 99, background: 'rgba(229,57,53,0.18)', fontSize: 11.5, fontWeight: 700, color: '#ff8a87' }}>{MONTH_NAMES[new Date().getMonth()]}</div>
+            </div>
+            <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{stats ? formatCurrency(stats.kpis.revenueThisMonth) : '—'}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{stats?.kpis.paidThisMonth ?? 0} pagos recibidos este mes</div>
+          </div>
+          {/* Al día (verde) */}
+          <div className="ec-card" style={{ padding: '26px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Dot c="#16a34a" /><div style={{ fontSize: 13, fontWeight: 600, color: '#a39a8e' }}>Al día</div></div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+              <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#16a34a' }}>{chartStatus.find((s) => s.status === 'Al día')?.count ?? 0}</div>
+              <div style={{ fontSize: 12.5, color: '#a39a8e' }}>alumnos con pago vigente</div>
+            </div>
+          </div>
+          {/* En mora (roja) */}
+          <div style={{ background: '#fdeeed', border: '1px solid #f3ddda', borderRadius: 22, padding: '26px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="ec-pulse"><Dot c="#E53935" /></span><div style={{ fontSize: 13, fontWeight: 600, color: '#c2554f' }}>En mora</div></div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+              <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#E53935' }}>{stats?.kpis.overdue ?? 0}</div>
+              <div style={{ fontSize: 12.5, color: '#c2554f' }}>requieren cobro</div>
+            </div>
+          </div>
         </div>
 
         {/* ── Charts ── */}
@@ -390,47 +366,37 @@ export default function PaymentsPage() {
           </div>
         )}
 
-        {/* ── Students list ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* Filters */}
-          <div className="px-4 py-3 border-b border-gray-100 space-y-2">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-                <input
-                  type="text"
-                  placeholder="Buscar alumno..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-              <select value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
-                <option value="ALL">Todos los planes</option>
+        {/* ── Tabs segmentadas + buscador ── */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="ec-seg-scroll" style={{ display: 'flex', gap: 6, background: '#f0ece6', borderRadius: 99, padding: 4, maxWidth: '100%', overflowX: 'auto' }}>
+            {(['ALL','OVERDUE','DUE_SOON','UP_TO_DATE'] as const).map((s) => {
+              const labels = { ALL: 'Todos', OVERDUE: 'En mora', DUE_SOON: 'Próx. venc.', UP_TO_DATE: 'Al día' };
+              const active = filterStatus === s;
+              return (
+                <button key={s} onClick={() => setFilterStatus(s)}
+                  style={{ height: 38, padding: '0 16px', border: 'none', borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, background: active ? '#fff' : 'transparent', color: active ? '#1a1a1a' : '#6b6258', boxShadow: active ? '0 1px 4px rgba(26,26,26,0.08)' : 'none', transition: 'all .15s' }}>
+                  {labels[s]}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2 items-center w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none sm:w-[240px]">
+              <Search className="absolute left-[18px] top-1/2 -translate-y-1/2 w-4 h-4 text-[#a39a8e] pointer-events-none" />
+              <input type="text" placeholder="Buscar alumno…" value={search} onChange={(e) => setSearch(e.target.value)} className="ec-field w-full pl-[46px]" style={{ height: 46 }} />
+            </div>
+            <div className="relative flex-shrink-0">
+              <select value={filterPlan} onChange={(e) => setFilterPlan(e.target.value)} className="ec-select" style={{ height: 46 }}>
+                <option value="ALL">Plan: todos</option>
                 {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-            </div>
-            {/* Status + method filter pills */}
-            <div className="flex gap-1.5 flex-wrap">
-              {(['ALL','OVERDUE','DUE_SOON','UP_TO_DATE'] as const).map((s) => {
-                const labels = { ALL: 'Todos', OVERDUE: 'En mora', DUE_SOON: 'Próx. venc.', UP_TO_DATE: 'Al día' };
-                const colors = { ALL: 'bg-gray-900 text-white', OVERDUE: 'bg-red-500 text-white', DUE_SOON: 'bg-amber-500 text-white', UP_TO_DATE: 'bg-emerald-500 text-white' };
-                return (
-                  <button key={s} onClick={() => setFilterStatus(s)}
-                    className={cn('px-3 py-1 rounded-lg text-xs font-medium transition-colors',
-                      filterStatus === s ? colors[s] : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
-                    )}>{labels[s]}</button>
-                );
-              })}
-              <div className="w-px bg-gray-200 mx-1 self-stretch" />
-              <select value={filterMethod} onChange={(e) => setFilterMethod(e.target.value)}
-                className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none bg-white">
-                <option value="ALL">Método: Todos</option>
-                {['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'].map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
+              <ChevronRight className="pointer-events-none absolute right-[14px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a39a8e] rotate-90" />
             </div>
           </div>
+        </div>
+
+        {/* ── Students list ── */}
+        <div className="ec-card overflow-hidden">
 
           {/* List */}
           {loadingStudents ? (
@@ -441,84 +407,70 @@ export default function PaymentsPage() {
             <>
               {/* Desktop table */}
               <div className="hidden md:block overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full" style={{ borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/60">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Alumno</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Plan</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Estado</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Vencimiento</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Último pago</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Método</th>
-                      <th className="px-4 py-3" />
+                    <tr style={{ background: '#fcfbf9', borderBottom: '1px solid #f0ece6' }}>
+                      {['Alumno','Plan','Estado','Vencimiento','Último pago','Método',''].map((h) => (
+                        <th key={h} style={{ padding: '16px 20px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a39a8e', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {filtered.map((s) => (
-                      <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3.5">
-                          <Link href={`/students/${s.id}`}
-                            className="text-sm font-semibold text-gray-900 hover:text-brand-600 transition-colors">
-                            {s.firstName} {s.lastName}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3.5 text-sm text-gray-500">{s.plan?.name ?? '—'}</td>
-                        <td className="px-4 py-3.5"><StatusBadge status={s.paymentStatus} /></td>
-                        <td className="px-4 py-3.5 text-sm text-gray-500">
-                          {s.nextDueDate ? formatDate(s.nextDueDate) : '—'}
-                        </td>
-                        <td className="px-4 py-3.5 text-sm text-gray-500">
-                          {s.lastPayment ? (
-                            <span>{formatDate(s.lastPayment.paidAt)} · <span className="font-medium text-gray-700">{formatCurrency(s.lastPayment.amount)}</span></span>
-                          ) : '—'}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <MethodPill method={s.lastPayment?.paymentMethod} />
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2 justify-end">
-                            <button onClick={() => openModal(s)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white rounded-lg text-xs font-medium hover:bg-brand-700 transition-colors">
+                  <tbody>
+                    {filtered.map((s) => {
+                      const initials = `${s.firstName[0] ?? ''}${s.lastName[0] ?? ''}`.toUpperCase();
+                      const mora = s.paymentStatus === 'OVERDUE';
+                      return (
+                        <tr key={s.id} style={{ borderBottom: '1px solid #f6f3ef', transition: 'background 0.12s' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = '#fcfbf9')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                          <td style={{ padding: '15px 20px' }}>
+                            <Link href={`/students/${s.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+                              <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 800, background: mora ? '#fdeeed' : '#f0ece6', color: mora ? '#E53935' : '#6b6258' }}>{initials}</div>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{s.firstName} {s.lastName}</span>
+                            </Link>
+                          </td>
+                          <td style={{ padding: '15px 20px', fontSize: 13.5, color: '#6b6258' }}>{s.plan?.name ?? '—'}</td>
+                          <td style={{ padding: '15px 20px' }}><StatusBadge status={s.paymentStatus} /></td>
+                          <td style={{ padding: '15px 20px', fontSize: 13.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: mora ? '#E53935' : '#6b6258' }}>{s.nextDueDate ? formatDate(s.nextDueDate) : '—'}</td>
+                          <td style={{ padding: '15px 20px', fontSize: 13, color: '#6b6258' }}>
+                            {s.lastPayment ? <span>{formatDate(s.lastPayment.paidAt)} · <strong style={{ color: '#1a1a1a', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(s.lastPayment.amount)}</strong></span> : '—'}
+                          </td>
+                          <td style={{ padding: '15px 20px' }}><MethodPill method={s.lastPayment?.paymentMethod} /></td>
+                          <td style={{ padding: '15px 20px' }}>
+                            <button onClick={() => openModal(s)} className="ec-btn-dark" style={{ height: 34, fontSize: 12.5 }}>
                               <Plus className="w-3.5 h-3.5" /> Registrar
                             </button>
-                            <Link href={`/students/${s.id}`}
-                              className="flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 text-gray-500 rounded-lg text-xs hover:bg-gray-50 transition-colors">
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile cards */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden">
                 {filtered.map((s) => (
-                  <div key={s.id} className="p-4 hover:bg-gray-50/50 transition-colors">
+                  <div key={s.id} className="p-4" style={{ borderTop: '1px solid #f6f3ef' }}>
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div>
-                        <Link href={`/students/${s.id}`}
-                          className="text-sm font-semibold text-gray-900 hover:text-brand-600">
+                        <Link href={`/students/${s.id}`} className="text-sm font-bold text-[#1a1a1a]">
                           {s.firstName} {s.lastName}
                         </Link>
-                        <p className="text-xs text-gray-400 mt-0.5">{s.plan?.name ?? '—'}</p>
+                        <p className="text-xs text-[#a39a8e] mt-0.5">{s.plan?.name ?? '—'}</p>
                       </div>
                       <StatusBadge status={s.paymentStatus} />
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-xs text-gray-400 space-y-0.5">
+                      <div className="text-xs text-[#a39a8e] space-y-0.5">
                         {s.nextDueDate && <p>Vence: {formatDate(s.nextDueDate)}</p>}
                         {s.lastPayment && (
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{formatDate(s.lastPayment.paidAt)} · {formatCurrency(s.lastPayment.amount)}</span>
-                            <MethodPill method={s.lastPayment.paymentMethod} />
                           </div>
                         )}
                       </div>
-                      <button onClick={() => openModal(s)}
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-xl text-xs font-medium hover:bg-brand-700">
+                      <button onClick={() => openModal(s)} className="ec-btn-dark flex-shrink-0" style={{ height: 36 }}>
                         <Plus className="w-3.5 h-3.5" /> Pago
                       </button>
                     </div>
@@ -530,8 +482,8 @@ export default function PaymentsPage() {
 
           {/* Footer count */}
           {filtered.length > 0 && (
-            <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
-              {filtered.length} alumno{filtered.length !== 1 ? 's' : ''}{filtered.length !== students.length ? ` de ${students.length}` : ''}
+            <div style={{ padding: '16px 26px', background: '#fcfbf9', fontSize: 13, color: '#a39a8e' }}>
+              Mostrando {filtered.length} alumno{filtered.length !== 1 ? 's' : ''}{filtered.length !== students.length ? ` de ${students.length}` : ''}
             </div>
           )}
         </div>

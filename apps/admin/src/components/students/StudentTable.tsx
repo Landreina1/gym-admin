@@ -129,11 +129,12 @@ function StudentCard({ student, onWeight, onPayment, onDelete, onSuspend }: {
   const initials = `${student.firstName[0]}${student.lastName[0]}`.toUpperCase();
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3 shadow-sm">
+    <div className="bg-white rounded-[22px] border border-[#eae6e0] p-4 space-y-3" style={{ boxShadow: '0 2px 10px rgba(26,26,26,0.03)' }}>
       {/* Top row */}
       <div className="flex items-start justify-between gap-3">
         <Link href={`/students/${student.id}`} className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+            style={{ background: student.isOverdue ? '#fdeeed' : '#f0ece6', color: student.isOverdue ? '#E53935' : '#6b6258' }}>
             {initials}
           </div>
           <div className="min-w-0">
@@ -361,54 +362,62 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
       </div>
 
       {/* ── Desktop: table ── */}
-      <div className="hidden md:block bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="hidden md:block" style={{ background: '#fff', border: '1px solid #eae6e0', borderRadius: 22, overflow: 'hidden', boxShadow: '0 2px 10px rgba(26,26,26,0.03)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[900px]" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100">
+              <tr style={{ background: '#fcfbf9', borderBottom: '1px solid #f0ece6' }}>
                 {['Alumno', 'Plan', 'Peso inicial', 'Peso anterior', 'Peso actual', 'Estado', 'Pago', 'Vencimiento', ''].map((h) => (
-                  <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                  <th key={h} style={{ padding: '16px 20px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a39a8e', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
               {students.map((student) => {
                 const records = student.weightRecords ?? [];
                 const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
                 const prev = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
+                const initials = `${student.firstName[0] ?? ''}${student.lastName[0] ?? ''}`.toUpperCase();
+                const mora = student.isOverdue && student.paymentStatus !== 'PARTIAL';
                 return (
-                  <tr key={student.id} className="group hover:bg-slate-50 transition-colors cursor-pointer">
-                    <td className="px-5 py-4">
-                      <Link href={`/students/${student.id}`} className="block">
-                        <p className="text-sm font-semibold text-gray-900 group-hover:text-brand-700 leading-tight">{student.firstName} {student.lastName}</p>
-                        {student.email && <p className="text-xs text-gray-400 mt-0.5">{student.email}</p>}
+                  <tr key={student.id} className="ec-trow" style={{ borderBottom: '1px solid #f6f3ef', cursor: 'pointer', transition: 'background 0.12s' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#fcfbf9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <td style={{ padding: '15px 20px' }}>
+                      <Link href={`/students/${student.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, textDecoration: 'none' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 800, background: mora ? '#fdeeed' : '#f0ece6', color: mora ? '#E53935' : '#6b6258' }}>{initials}</div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.2 }}>{student.firstName} {student.lastName}</p>
+                          {student.email && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#a39a8e' }}>{student.email}</p>}
+                        </div>
                       </Link>
                     </td>
-                    <td className="px-5 py-4"><span className="text-sm text-gray-600">{student.plan?.name ?? '—'}</span></td>
-                    <td className="px-5 py-4"><span className="text-sm text-gray-500">{student.initialWeight ? `${student.initialWeight} kg` : '—'}</span></td>
-                    <td className="px-5 py-4"><span className="text-sm text-gray-500">{prev ? `${prev.weight} kg` : '—'}</span></td>
-                    <td className="px-5 py-4"><WeightCell records={sorted} goal={student.goal} /></td>
-                    <td className="px-5 py-4">
-                      <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', student.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500')}>
-                        <span className={cn('w-1.5 h-1.5 rounded-full', student.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-gray-400')} />
+                    <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, color: '#6b6258' }}>{student.plan?.name ?? '—'}</span></td>
+                    <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, color: '#a39a8e' }}>{student.initialWeight ? `${student.initialWeight} kg` : '—'}</span></td>
+                    <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, color: '#a39a8e' }}>{prev ? `${prev.weight} kg` : '—'}</span></td>
+                    <td style={{ padding: '15px 20px' }}><WeightCell records={sorted} goal={student.goal} /></td>
+                    <td style={{ padding: '15px 20px' }}>
+                      <span className="ec-badge" style={{ background: student.status === 'ACTIVE' ? '#e9f6ee' : '#f0ece6', color: student.status === 'ACTIVE' ? '#16a34a' : '#6b6258' }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: student.status === 'ACTIVE' ? '#16a34a' : '#a39a8e' }} />
                         {student.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
+                    <td style={{ padding: '15px 20px' }}>
                       {student.paymentStatus === 'PARTIAL' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        <span className="ec-badge" style={{ background: '#fdf4e7', color: '#b45309' }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#d97706' }} />
                           Pago parcial
                         </span>
                       ) : (
-                        <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', student.isOverdue ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700')}>
-                          <span className={cn('w-1.5 h-1.5 rounded-full', student.isOverdue ? 'bg-red-500' : 'bg-emerald-500')} />
-                          {student.isOverdue ? 'En mora' : 'Al día'}
+                        <span className="ec-badge" style={{ background: mora ? '#fdeeed' : '#e9f6ee', color: mora ? '#E53935' : '#16a34a' }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: mora ? '#E53935' : '#16a34a' }} />
+                          {mora ? 'En mora' : 'Al día'}
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-4"><span className="text-sm text-gray-500">{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span></td>
-                    <td className="px-3 py-4">
+                    <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: mora ? '#E53935' : '#6b6258' }}>{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span></td>
+                    <td style={{ padding: '15px 12px' }}>
                       <ActionDropdown student={student} onWeight={() => openWeight(student)} onPayment={() => openPayment(student)} onDelete={() => setDeleteStudent(student)} onSuspend={() => handleSuspend(student)} />
                     </td>
                   </tr>

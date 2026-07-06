@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle, Calendar, CreditCard, X, ArrowRight } from 'lucide-react';
 import { RegisterPaymentModal } from './RegisterPaymentModal';
 import { PendingDecisionModal } from './PendingDecisionModal';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface StudentInfo {
   id: string;
@@ -120,10 +121,10 @@ function PaidUpModal({
 
           {/* Footer */}
           <div style={{ display: 'flex', gap: 10, padding: '0 24px 24px' }}>
-            <button onClick={onClose} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+            <button onClick={onClose} style={{ flex: 1, height: 46, borderRadius: 99, border: '1px solid #e2dcd4', background: '#fff', fontSize: 13.5, fontWeight: 600, color: '#1a1a1a', cursor: 'pointer' }}>
               Cerrar
             </button>
-            <button onClick={onAdvance} style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: 'none', background: '#E53935', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 12px rgba(229,57,53,0.28)' }}>
+            <button onClick={onAdvance} style={{ flex: 1.4, height: 46, borderRadius: 99, border: 'none', background: '#E53935', color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 6px 18px rgba(229,57,53,0.25)' }}>
               Adelantar pago
             </button>
           </div>
@@ -135,6 +136,7 @@ function PaidUpModal({
 
 // ── Main flow ──────────────────────────────────────────────────────────────────
 export function PaymentFlowModal({ student, onClose, onSuccess }: Props) {
+  useBodyScrollLock(!!student);
   const [step, setStep] = useState<'decision' | 'payment'>('decision');
   const [decisionMode, setDecisionMode] = useState<DecisionMode | null>(null);
   const [advanceMode, setAdvanceMode] = useState(false);

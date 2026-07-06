@@ -139,7 +139,7 @@ export class PaymentsService {
       where: { status: 'ACTIVE' },
       include: {
         plan: true,
-        payments: { select: { periodEnd: true, amount: true, paidAt: true }, orderBy: { paidAt: 'desc' }, take: 20 },
+        payments: { select: { id: true, periodEnd: true, amount: true, paidAt: true, paymentMethod: true }, orderBy: { paidAt: 'desc' }, take: 20 },
       },
       orderBy: { lastName: 'asc' },
     });

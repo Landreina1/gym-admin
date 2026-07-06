@@ -3,37 +3,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import {
-  LogOut, ChevronDown,
-  Settings, Dumbbell, Menu,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useSidebar } from '@/context/sidebar.context';
+import { LogOut, Settings } from 'lucide-react';
 
 interface AdminUser { id: string; name: string; email: string; role: string }
 
-function Avatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
-  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-  const sz = { sm: 'w-7 h-7 text-xs', md: 'w-8 h-8 text-xs', lg: 'w-11 h-11 text-sm' }[size];
-  return (
-    <div className={cn('rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-semibold flex-shrink-0', sz)}>
-      {initials}
-    </div>
-  );
-}
-
-const MENU_SECTIONS = [
-  {
-    items: [
-      { href: '/settings', label: 'Configuración', icon: Settings, desc: 'Cuenta y contraseña' },
-    ],
-  },
+const NAV = [
+  { href: '/dashboard', label: 'Resumen' },
+  { href: '/students',  label: 'Alumnos' },
+  { href: '/payments',  label: 'Pagos' },
+  { href: '/planes',    label: 'Planes' },
+  // Dietas oculto hasta futuro
 ];
 
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const { toggle } = useSidebar();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -70,94 +54,109 @@ export function Header() {
   const name = user?.name ?? 'Admin';
   const email = user?.email ?? '';
   const roleLabel = user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Administrador';
+  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+
+  function isActive(href: string) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   return (
-    <header className="h-14 md:h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 z-30 flex-shrink-0">
+    <header className="ec-hdr">
+      <style>{`
+        .ec-hdr {
+          background: var(--surface-page);
+          border-bottom: 1px solid var(--border-default);
+          height: 68px;
+          position: sticky;
+          top: 0;
+          z-index: 20;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 40px;
+        }
+        .ec-hdr-left { display: flex; align-items: center; gap: 40px; min-width: 0; }
+        .ec-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0; }
+        .ec-brand .dot { width: 9px; height: 9px; background: #E53935; border-radius: 50%; }
+        .ec-brand .name { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: #1a1a1a; white-space: nowrap; }
+        .ec-nav { display: flex; align-items: center; gap: 4px; min-width: 0; }
+        .ec-nav a {
+          padding: 8px 16px; border-radius: 99px; color: #6b6258;
+          font-size: 13.5px; font-weight: 500; text-decoration: none;
+          transition: background .15s, color .15s; white-space: nowrap;
+        }
+        .ec-nav a:hover { background: #f0ece6; color: #1a1a1a; }
+        .ec-nav a.active { background: #1a1a1a; color: #fff; font-weight: 600; }
+        .ec-avatar {
+          width: 38px; height: 38px; background: #E53935; color: #fff;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 12px; font-weight: 800; border-radius: 50%; border: none; cursor: pointer;
+        }
+        @media (max-width: 880px) {
+          .ec-hdr { padding: 0 16px; gap: 12px; }
+          .ec-hdr-left { gap: 14px; flex: 1 1 auto; }
+          .ec-nav { overflow-x: auto; }
+          .ec-nav::-webkit-scrollbar { display: none; }
+          .ec-brand .name { display: none; }
+        }
+      `}</style>
 
-      {/* Left: hamburger (mobile only) */}
-      <button
-        onClick={toggle}
-        className="md:hidden p-2 text-gray-500 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
-        aria-label="Menú"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-      <div className="hidden md:block" />
+      <div className="ec-hdr-left">
+        <Link href="/dashboard" className="ec-brand">
+          <span className="dot" />
+          <span className="name">Gym El Cuba</span>
+        </Link>
+        <nav className="ec-nav">
+          {NAV.map((item) => (
+            <Link key={item.href} href={item.href} className={isActive(item.href) ? 'active' : ''}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-2">
-        {/* User menu */}
-        <div className="relative" ref={ref}>
-          <button
-            onClick={() => setOpen(!open)}
-            className={cn(
-              'flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 rounded-xl transition-colors',
-              open ? 'bg-gray-100' : 'hover:bg-gray-100',
-            )}
-          >
-            <Avatar name={name} size="sm" />
-            <span className="text-sm font-medium text-gray-700 hidden sm:block max-w-[100px] truncate">{name}</span>
-            <ChevronDown className={cn('w-3.5 h-3.5 text-gray-400 transition-transform hidden sm:block', open && 'rotate-180')} />
-          </button>
+      {/* Avatar + dropdown */}
+      <div style={{ position: 'relative', flexShrink: 0 }} ref={ref}>
+        <button className="ec-avatar" onClick={() => setOpen(!open)} aria-label="Cuenta">
+          {initials}
+        </button>
 
-          {open && (
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/60 py-2 z-50">
-
-              {/* Header */}
-              <div className="px-4 py-3 flex items-center gap-3">
-                <Avatar name={name} size="lg" />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{name}</p>
-                  <p className="text-xs text-gray-400 truncate">{email}</p>
-                  <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.5 bg-brand-50 text-brand-600 text-xs font-medium rounded-md">
-                    <Dumbbell className="w-2.5 h-2.5" />
-                    {roleLabel}
-                  </span>
-                </div>
+        {open && (
+          <div style={{
+            position: 'absolute', right: 0, marginTop: 10, width: 264,
+            background: '#fff', borderRadius: 18, border: '1px solid #eae6e0',
+            boxShadow: '0 12px 32px rgba(26,26,26,0.12)', padding: 8, zIndex: 50,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#E53935', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>
+                {initials}
               </div>
-
-              <div className="mx-3 border-t border-gray-100 my-1" />
-
-              {MENU_SECTIONS.map((section, si) => (
-                <div key={si}>
-                  {si > 0 && <div className="mx-3 border-t border-gray-100 my-1" />}
-                  {section.items.map(({ href, label, icon: Icon, desc }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setOpen(false)}
-                      className="flex items-center gap-3 mx-1 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-brand-50 flex items-center justify-center flex-shrink-0 transition-colors">
-                        <Icon className="w-4 h-4 text-gray-500 group-hover:text-brand-600 transition-colors" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{label}</p>
-                        <p className="text-xs text-gray-400">{desc}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ))}
-
-              <div className="mx-3 border-t border-gray-100 my-1" />
-
-              <button
-                onClick={logout}
-                className="flex items-center gap-3 mx-1 px-3 py-2.5 rounded-xl hover:bg-red-50 transition-colors group w-[calc(100%-8px)]"
-              >
-                <div className="w-8 h-8 rounded-lg bg-red-50 group-hover:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors">
-                  <LogOut className="w-4 h-4 text-red-500" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-red-600">Cerrar sesión</p>
-                  <p className="text-xs text-red-400">Salir del sistema</p>
-                </div>
-              </button>
-
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</p>
+                <p style={{ margin: 0, fontSize: 12, color: '#a39a8e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</p>
+                <span style={{ display: 'inline-block', marginTop: 3, padding: '2px 8px', background: '#fdeeed', color: '#c2554f', fontSize: 11, fontWeight: 600, borderRadius: 99 }}>{roleLabel}</span>
+              </div>
             </div>
-          )}
-        </div>
+
+            <div style={{ height: 1, background: '#f0ece6', margin: '6px 8px' }} />
+
+            <Link href="/settings" onClick={() => setOpen(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, textDecoration: 'none', color: '#1a1a1a' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#faf9f7')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+              <Settings style={{ width: 17, height: 17, color: '#6b6258' }} />
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Configuración</span>
+            </Link>
+
+            <button onClick={logout}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', textAlign: 'left', color: '#E53935' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#fdeeed')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+              <LogOut style={{ width: 17, height: 17 }} />
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Cerrar sesión</span>
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

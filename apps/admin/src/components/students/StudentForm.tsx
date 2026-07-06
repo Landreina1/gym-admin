@@ -12,30 +12,30 @@ import { Toast } from '@/components/ui/Toast';
 interface StudentFormProps { student?: Student }
 
 const INPUT = [
-  'w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 bg-white',
-  'placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400',
-  'focus:border-transparent transition-colors min-h-[44px]',
+  'w-full h-[50px] px-5 border border-[#eae6e0] rounded-full text-sm text-[#1a1a1a] bg-[#faf9f7]',
+  'placeholder:text-[#a39a8e] outline-none transition-colors',
+  'focus:border-[#E53935] focus:bg-white',
 ].join(' ');
 
 const SELECT = INPUT + ' appearance-none cursor-pointer pr-10';
 
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 7 }}>
+    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#6b6258', paddingLeft: 18, marginBottom: 7 }}>
       {children}
-      {required && <span style={{ color: '#EF4444', marginLeft: 3 }}>*</span>}
+      {required && <span style={{ color: '#E53935', marginLeft: 3 }}>*</span>}
     </label>
   );
 }
 
 function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #F1F5F9', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', padding: '24px 28px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid #F8FAFC' }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div style={{ background: '#fff', borderRadius: 22, border: '1px solid #eae6e0', boxShadow: '0 2px 10px rgba(26,26,26,0.03)', padding: '26px 30px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid #f6f3ef' }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: '#fdeeed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {icon}
         </div>
-        <h2 style={{ fontSize: 14, fontWeight: 700, color: '#111827', margin: 0, letterSpacing: '-0.01em' }}>{title}</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1a1a1a', margin: 0, letterSpacing: '-0.02em' }}>{title}</h2>
       </div>
       {children}
     </div>
@@ -282,11 +282,11 @@ export function StudentForm({ student }: StudentFormProps) {
             {/* ACTION BUTTONS */}
             <div style={{ display: 'flex', gap: 12, paddingTop: 4, paddingBottom: 16 }}>
               <button type="button" onClick={() => router.back()}
-                style={{ flex: 1, padding: '12px 24px', borderRadius: 12, border: '1.5px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                style={{ flex: 1, height: 52, borderRadius: 99, border: '1px solid #e2dcd4', background: '#fff', fontSize: 14, fontWeight: 600, color: '#1a1a1a', cursor: 'pointer', transition: 'border-color 0.15s' }}>
                 Cancelar
               </button>
               <button type="submit" disabled={mutation.isPending}
-                style={{ flex: 1, padding: '12px 24px', borderRadius: 12, border: 'none', fontSize: 13, fontWeight: 700, color: '#fff', cursor: mutation.isPending ? 'not-allowed' : 'pointer', background: mutation.isPending ? '#FCA5A5' : '#EF4444', boxShadow: mutation.isPending ? 'none' : '0 4px 14px rgba(239,68,68,0.28)', transition: 'background 0.15s' }}>
+                style={{ flex: 1.4, height: 52, borderRadius: 99, border: 'none', fontSize: 14, fontWeight: 700, color: '#fff', cursor: mutation.isPending ? 'not-allowed' : 'pointer', background: mutation.isPending ? '#e8b5b3' : '#E53935', boxShadow: mutation.isPending ? 'none' : '0 6px 18px rgba(229,57,53,0.25)', transition: 'background 0.15s' }}>
                 {mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Guardar alumno'}
               </button>
             </div>

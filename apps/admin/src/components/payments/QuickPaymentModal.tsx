@@ -6,6 +6,7 @@ import { X, Search, CreditCard, User, RefreshCw, AlertCircle } from 'lucide-reac
 import { studentsService } from '@/services/students.service';
 import { paymentsService } from '@/services/payments.service';
 import { PendingDecisionModal } from './PendingDecisionModal';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import type { Student } from '@/types';
 
 const METHODS = ['Pago Móvil', 'Transferencia', 'Efectivo USD', 'Efectivo Bs', 'Otro'];
@@ -18,6 +19,7 @@ interface Props { onClose: () => void; onSuccess?: () => void }
 type PendingDecision = 'complete' | 'abono';
 
 export function QuickPaymentModal({ onClose, onSuccess }: Props) {
+  useBodyScrollLock(true);
   const queryClient = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -137,8 +139,8 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
     mutation.mutate();
   }
 
-  const inp = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white';
-  const lbl: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 };
+  const inp = 'w-full px-4 h-[46px] border border-[#eae6e0] rounded-full text-sm bg-[#faf9f7] text-[#1a1a1a] placeholder:text-[#a39a8e] outline-none transition-colors focus:border-[#E53935] focus:bg-white';
+  const lbl: React.CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 600, color: '#6b6258', paddingLeft: 16, marginBottom: 6 };
 
   if (showDecision && hasPending && student) {
     return (

@@ -10,8 +10,6 @@ import { cn } from '@/lib/utils';
 import { exportPdf } from '@/lib/export';
 import Link from 'next/link';
 
-const selectClass =
-  'flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors cursor-pointer appearance-none pr-8 w-full';
 
 export default function StudentsPage() {
   const [search, setSearch] = useState('');
@@ -67,25 +65,18 @@ export default function StudentsPage() {
     <div className="space-y-4">
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Alumnos</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{data?.total ?? 0} alumno{(data?.total ?? 0) !== 1 ? 's' : ''} en total</p>
+      <div className="flex items-end justify-between gap-6 flex-wrap">
+        <div className="flex flex-col gap-2">
+          <div className="ec-eyebrow">Gestión de alumnos</div>
+          <h1 className="ec-h1 !text-[30px] md:!text-[40px]">Alumnos</h1>
         </div>
         {/* Actions */}
         <div className="hidden md:flex items-center gap-2">
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="flex items-center gap-2 px-3 py-2.5 border border-gray-200 bg-white text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
+          <button onClick={handleExport} disabled={exporting} className="ec-btn-ghost disabled:opacity-50">
             <Download className="w-4 h-4" />
             {exporting ? 'Generando...' : 'Exportar PDF'}
           </button>
-          <Link
-            href="/students/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors whitespace-nowrap"
-          >
+          <Link href="/students/new" className="ec-btn-primary">
             <Plus className="w-4 h-4" />
             Nuevo alumno
           </Link>
@@ -94,31 +85,31 @@ export default function StudentsPage() {
 
       {/* Desktop filter bar */}
       <div className="hidden md:flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-[18px] top-1/2 -translate-y-1/2 w-4 h-4 text-[#a39a8e] pointer-events-none" />
           <input
-            type="text" placeholder="Buscar alumno..." value={search}
+            type="text" placeholder="Buscar alumno…" value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="ec-field w-full pl-[46px]"
           />
         </div>
         <div className="relative">
-          <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={cn(selectClass, 'w-auto', status && 'border-brand-400 text-brand-700 bg-brand-50')}>
-            <option value="">Estado</option>
+          <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={cn('ec-select', status && '!border-[#E53935] !text-[#c2554f]')}>
+            <option value="">Estado: todos</option>
             <option value="ACTIVE">Activo</option>
             <option value="INACTIVE">Inactivo</option>
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <ChevronDown className="pointer-events-none absolute right-[14px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a39a8e]" />
         </div>
         <div className="relative">
-          <select value={planId} onChange={(e) => { setPlanId(e.target.value); setPage(1); }} className={cn(selectClass, 'w-auto', planId && 'border-brand-400 text-brand-700 bg-brand-50')}>
-            <option value="">Plan</option>
+          <select value={planId} onChange={(e) => { setPlanId(e.target.value); setPage(1); }} className={cn('ec-select', planId && '!border-[#E53935] !text-[#c2554f]')}>
+            <option value="">Plan: todos</option>
             {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <ChevronDown className="pointer-events-none absolute right-[14px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a39a8e]" />
         </div>
         {hasFilters && (
-          <button onClick={clearFilters} className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+          <button onClick={clearFilters} className="flex items-center gap-1.5 px-3 h-[48px] text-sm text-[#6b6258] hover:text-[#1a1a1a] hover:bg-[#f0ece6] rounded-full transition-colors">
             <X className="w-3.5 h-3.5" /> Limpiar
           </button>
         )}
@@ -128,46 +119,46 @@ export default function StudentsPage() {
       <div className="md:hidden space-y-2">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Search className="absolute left-[18px] top-1/2 -translate-y-1/2 w-4 h-4 text-[#a39a8e] pointer-events-none" />
             <input
-              type="text" placeholder="Buscar alumno..." value={search}
+              type="text" placeholder="Buscar alumno…" value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="ec-field w-full pl-[46px]"
             />
           </div>
           <button
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className={cn('flex items-center gap-1.5 px-3 py-2.5 border rounded-xl text-sm font-medium transition-colors',
+            className={cn('flex items-center gap-1.5 px-4 rounded-full text-sm font-medium transition-colors border',
               filtersOpen || hasFilters
-                ? 'border-brand-400 bg-brand-50 text-brand-700'
-                : 'border-gray-200 bg-white text-gray-600',
+                ? 'border-[#E53935] bg-[#fdeeed] text-[#c2554f]'
+                : 'border-[#eae6e0] bg-white text-[#6b6258]',
             )}
           >
             <SlidersHorizontal className="w-4 h-4" />
-            {hasFilters ? 'Filtros activos' : 'Filtros'}
+            {hasFilters ? 'Filtros' : 'Filtros'}
           </button>
         </div>
 
         {/* Collapsible mobile filters */}
         {filtersOpen && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3 overflow-hidden">
+          <div className="bg-white border border-[#eae6e0] rounded-[22px] p-4 space-y-3 overflow-hidden">
             <div className="relative w-full">
-              <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={cn(selectClass, status && 'border-brand-400 text-brand-700 bg-brand-50')}>
+              <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="ec-select w-full">
                 <option value="">Todos los estados</option>
                 <option value="ACTIVE">Activo</option>
                 <option value="INACTIVE">Inactivo</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a39a8e]" />
             </div>
             <div className="relative w-full">
-              <select value={planId} onChange={(e) => { setPlanId(e.target.value); setPage(1); }} className={cn(selectClass, planId && 'border-brand-400 text-brand-700 bg-brand-50')}>
+              <select value={planId} onChange={(e) => { setPlanId(e.target.value); setPage(1); }} className="ec-select w-full">
                 <option value="">Todos los planes</option>
                 {plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a39a8e]" />
             </div>
             {hasFilters && (
-              <button onClick={clearFilters} className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-red-100">
+              <button onClick={clearFilters} className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm text-[#E53935] hover:bg-[#fdeeed] rounded-full transition-colors border border-[#f3ddda]">
                 <X className="w-3.5 h-3.5" /> Limpiar filtros
               </button>
             )}

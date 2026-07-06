@@ -51,7 +51,9 @@ export default function LoginPage() {
           display: flex;
           min-height: 100vh;
           font-family: 'Inter', system-ui, sans-serif;
-          background: #f4f6f9;
+          background: #faf9f7;
+          padding: 16px;
+          gap: 16px;
         }
 
         /* ── LEFT PANEL ── */
@@ -64,6 +66,7 @@ export default function LoginPage() {
           position: relative;
           overflow: hidden;
           background-color: #0a0a0a;
+          border-radius: 22px;
         }
 
         /* red glow accents */
@@ -168,8 +171,7 @@ export default function LoginPage() {
           align-items: center;
           justify-content: center;
           padding: 40px 32px;
-          background: #f4f6f9;
-          min-height: 100vh;
+          background: #faf9f7;
         }
         .login-right-inner {
           width: 100%;
@@ -216,19 +218,21 @@ export default function LoginPage() {
         }
         .lf-input {
           width: 100%;
-          padding: 13px 16px 13px 44px;
-          border: 1.5px solid #E5E7EB;
-          border-radius: 12px;
+          height: 50px;
+          padding: 0 16px 0 46px;
+          border: 1px solid #eae6e0;
+          border-radius: 99px;
           font-size: 14px;
-          color: #121212;
-          background: #fff;
+          color: #1a1a1a;
+          background: #faf9f7;
           outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
+          transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
         }
-        .lf-input::placeholder { color: #D1D5DB; }
+        .lf-input::placeholder { color: #a39a8e; }
         .lf-input:focus {
           border-color: #E53935;
-          box-shadow: 0 0 0 3px rgba(229,57,53,0.10);
+          background: #fff;
+          box-shadow: 0 0 0 3px rgba(229,57,53,0.08);
         }
         .lf-input-pr { padding-right: 46px; }
         .lf-eye {
@@ -263,12 +267,12 @@ export default function LoginPage() {
         .lf-btn {
           width: 100%;
           display: flex; align-items: center; justify-content: center; gap: 8px;
-          padding: 14px 24px;
+          height: 52px;
           background: #E53935; color: #fff;
-          border: none; border-radius: 12px;
-          font-size: 15px; font-weight: 600;
+          border: none; border-radius: 99px;
+          font-size: 14.5px; font-weight: 700;
           cursor: pointer;
-          box-shadow: 0 4px 16px rgba(229,57,53,0.30);
+          box-shadow: 0 6px 18px rgba(229,57,53,0.25);
           transition: background 0.15s, transform 0.12s, box-shadow 0.15s;
           margin-bottom: 20px;
         }
