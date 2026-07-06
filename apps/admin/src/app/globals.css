@@ -13,6 +13,14 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* Dar aire al ícono del calendario en inputs de fecha (sobre todo en móvil) */
+input[type="date"] { padding-right: 14px; }
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: 10px;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
 /* ═══════════════════════════════════════════
    DESIGN TOKENS
 ═══════════════════════════════════════════ */

@@ -16,7 +16,7 @@ import { Toast } from '@/components/ui/Toast';
 import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 import { QuickPaymentModal } from '@/components/payments/QuickPaymentModal';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { exportPdf } from '@/lib/export';
+import { exportPaymentsReport } from '@/lib/paymentsReport';
 import type { StudentForPayments } from '@/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -75,6 +75,7 @@ export default function PaymentsPage() {
   const [filterMethod, setFilterMethod] = useState('ALL');
   const [filterPlan, setFilterPlan] = useState('ALL');
   const [showCharts, setShowCharts] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -90,30 +91,27 @@ export default function PaymentsPage() {
 
   const openModal = (s: StudentForPayments) => setSelectedStudent(s);
 
-  const STATUS_LABELS: Record<string, string> = {
-    UP_TO_DATE: 'Al día', OVERDUE: 'En mora',
-    DUE_SOON: 'Próx. venc.', PARTIAL: 'Pago parcial',
-  };
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
-  const handleExport = () => {
-    const n = new Date();
-    const dateStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-    exportPdf({
-      title: 'Registro de Pagos',
-      filename: `Pagos_Gym_El_Cuba_${dateStr}.pdf`,
-      headers: ['Nombre', 'Apellido', 'Plan', 'Estado', 'Próximo cobro', 'Saldo pendiente', 'Último pago', 'Monto', 'Método'],
-      rows: filtered.map((s) => [
-        s.firstName,
-        s.lastName,
-        s.plan?.name ?? '—',
-        STATUS_LABELS[s.paymentStatus ?? ''] ?? '—',
-        s.nextDueDate ? s.nextDueDate.toString().slice(0, 10) : '—',
-        s.pendingBalance ? `$${Number(s.pendingBalance).toFixed(2)}` : '—',
-        s.lastPayment?.paidAt ? s.lastPayment.paidAt.slice(0, 10) : '—',
-        s.lastPayment?.amount ? `$${Number(s.lastPayment.amount).toFixed(2)}` : '—',
-        s.lastPayment?.paymentMethod ?? '—',
-      ]),
-    });
+  const handleExport = async () => {
+    const reportRows = filtered
+      .filter((s) => s.lastPayment)
+      .map((s) => {
+        const d = new Date(s.lastPayment!.paidAt);
+        const ref = `Mensualidad ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+        return {
+          name: `${s.firstName} ${s.lastName}`,
+          amount: Number(s.lastPayment!.amount),
+          method: s.lastPayment!.paymentMethod || 'No especificado',
+          reference: ref,
+        };
+      });
+    try {
+      setExporting(true);
+      await exportPaymentsReport(reportRows);
+    } finally {
+      setExporting(false);
+    }
   };
 
   // Unique plans for filter
@@ -169,9 +167,9 @@ export default function PaymentsPage() {
             <button onClick={() => setShowCharts((v) => !v)} className="ec-btn-ghost hidden sm:inline-flex">
               {showCharts ? 'Ocultar gráficas' : 'Ver gráficas'}
             </button>
-            <button onClick={handleExport} disabled={filtered.length === 0} className="ec-btn-ghost disabled:opacity-40">
+            <button onClick={handleExport} disabled={exporting || filtered.length === 0} className="ec-btn-ghost disabled:opacity-40">
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Exportar PDF</span>
+              <span className="hidden sm:inline">{exporting ? 'Generando…' : 'Exportar PDF'}</span>
             </button>
             <button onClick={() => setQuickPayModal(true)} className="ec-btn-primary flex-1 sm:flex-none">
               <Plus className="w-4 h-4" />
@@ -195,7 +193,7 @@ export default function PaymentsPage() {
           <div className="ec-card" style={{ padding: '26px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Dot c="#16a34a" /><div style={{ fontSize: 13, fontWeight: 600, color: '#a39a8e' }}>Al día</div></div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#16a34a' }}>{chartStatus.find((s) => s.status === 'Al día')?.count ?? 0}</div>
+              <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#16a34a' }}>{(chartStatus.find((s) => s.status === 'Al día')?.count ?? 0) + (chartStatus.find((s) => s.status === 'Próx. venc.')?.count ?? 0)}</div>
               <div style={{ fontSize: 12.5, color: '#a39a8e' }}>alumnos con pago vigente</div>
             </div>
           </div>

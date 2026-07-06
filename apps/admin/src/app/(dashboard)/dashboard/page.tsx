@@ -50,9 +50,9 @@ function PageSkeleton() {
 }
 
 // ── Card ─────────────────────────────────────────────────────────────────────
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function Card({ children, style, className }: { children: React.ReactNode; style?: React.CSSProperties; className?: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #eae6e0', borderRadius: 22, boxShadow: '0 2px 10px rgba(26,26,26,0.03)', ...style }}>
+    <div className={className} style={{ background: '#fff', border: '1px solid #eae6e0', borderRadius: 22, boxShadow: '0 2px 10px rgba(26,26,26,0.03)', ...style }}>
       {children}
     </div>
   );
@@ -175,43 +175,43 @@ export default function DashboardPage() {
         </div>
 
         {/* Total alumnos */}
-        <Card style={{ padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
+        <Card style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }} className="p-[18px] md:p-6">
           <div style={{ fontSize: 13, fontWeight: 600, color: '#a39a8e' }}>Total alumnos</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{totals.total}</div>
+          <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-2.5">
+            <div className="text-[28px] md:text-[38px]" style={{ fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{totals.total}</div>
             <div style={{ fontSize: 12.5, color: '#a39a8e' }}>en el sistema</div>
           </div>
         </Card>
 
         {/* Activos */}
-        <Card style={{ padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
+        <Card style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }} className="p-[18px] md:p-6">
           <div style={{ fontSize: 13, fontWeight: 600, color: '#a39a8e' }}>Activos</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{totals.active}</div>
+          <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-2.5">
+            <div className="text-[28px] md:text-[38px]" style={{ fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1 }}>{totals.active}</div>
             <div style={{ fontSize: 12.5, color: '#a39a8e' }}>{totals.inactive} inactivo{totals.inactive !== 1 ? 's' : ''}</div>
           </div>
         </Card>
 
         {/* Al día */}
-        <Card style={{ borderColor: '#d8eede', padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
+        <Card style={{ borderColor: '#d8eede', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }} className="p-[18px] md:p-6">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
             <div style={{ fontSize: 13, fontWeight: 600, color: '#a39a8e' }}>Al día</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#16a34a' }}>{totals.upToDate}</div>
+          <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-2.5">
+            <div className="text-[28px] md:text-[38px]" style={{ fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#16a34a' }}>{totals.upToDate}</div>
             <div style={{ fontSize: 12.5, color: '#a39a8e' }}>{upPct}% del total</div>
           </div>
         </Card>
 
         {/* En mora */}
-        <div style={{ background: '#fdeeed', border: '1px solid #f3ddda', borderRadius: 22, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
+        <div className="p-[18px] md:p-6" style={{ background: '#fdeeed', border: '1px solid #f3ddda', borderRadius: 22, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div className="ec-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#E53935' }} />
             <div style={{ fontSize: 13, fontWeight: 600, color: '#c2554f' }}>En mora</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#E53935' }}>{totals.overdue}</div>
+          <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-2.5">
+            <div className="text-[28px] md:text-[38px]" style={{ fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: '#E53935' }}>{totals.overdue}</div>
             <div style={{ fontSize: 12.5, color: '#c2554f' }}>{overPct}% del total</div>
           </div>
         </div>

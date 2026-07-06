@@ -135,9 +135,9 @@ export default function PlanesPage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 16, alignItems: 'stretch' }}>
-          {plans.map((plan, idx) => {
+          {plans.map((plan) => {
             const bullets = getBullets(plan.description);
-            const dark = idx === 0;
+            const dark = true;
             return (
               <div key={plan.id} style={{
                 background: dark ? '#1a1a1a' : '#fff',
