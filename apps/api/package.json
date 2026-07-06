@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "prisma db push --schema=./prisma/schema.prisma --accept-data-loss && prisma generate --schema=./prisma/schema.prisma && nest build",
+    "build": "prisma generate --schema=./prisma/schema.prisma && nest build",
+    "db:push": "prisma db push --schema=./prisma/schema.prisma --accept-data-loss",
     "start": "node dist/main",
     "lint": "eslint src --ext .ts"
   },
