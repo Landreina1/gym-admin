@@ -16,7 +16,8 @@ import { PrismaModule } from '../../prisma/prisma.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET') ?? 'change_this_secret_in_production',
-        signOptions: { expiresIn: '7d' },
+        // Sesión de larga duración: no se cierra sola, solo con "Cerrar sesión"
+        signOptions: { expiresIn: '3650d' },
       }),
     }),
   ],

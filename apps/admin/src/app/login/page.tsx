@@ -25,7 +25,7 @@ export default function LoginPage() {
       const { data } = await api.post('/auth/login', { username: username.trim(), password });
       localStorage.setItem('gym_token', data.token);
       localStorage.setItem('gym_user', JSON.stringify(data.user));
-      document.cookie = `gym_token=${data.token}; path=/; max-age=${7 * 24 * 3600}; SameSite=Strict`;
+      document.cookie = `gym_token=${data.token}; path=/; max-age=${10 * 365 * 24 * 3600}; SameSite=Strict`;
       setSuccess(true);
       setTimeout(() => router.push('/dashboard'), 1000);
     } catch {
