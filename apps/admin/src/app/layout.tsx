@@ -6,8 +6,8 @@ import { Providers } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Gym Admin',
-  description: 'Panel administrativo del gimnasio',
+  title: 'Gym El Cuba · Panel',
+  description: 'Panel de administración — Gym El Cuba',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -118,7 +118,7 @@ export default function LoginPage() {
 
           {/* Logo + marca */}
           <div className="lg-logo">
-            <img src="/gym-cuba.jpg" alt="Gym El Cuba" />
+            <img src="/logo.png" alt="Gym El Cuba" />
           </div>
           <h1 style={{ margin: 0, textAlign: 'center', fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: '#1a1a1a' }}>
             Gym El Cuba

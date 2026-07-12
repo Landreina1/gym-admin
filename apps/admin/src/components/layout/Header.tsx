@@ -76,8 +76,8 @@ export function Header() {
           padding: 0 40px;
         }
         .ec-hdr-left { display: flex; align-items: center; gap: 40px; min-width: 0; }
-        .ec-brand { display: flex; align-items: center; gap: 11px; text-decoration: none; flex-shrink: 0; }
-        .ec-brand .dot { width: 9px; height: 9px; background: #E53935; border-radius: 50%; }
+        .ec-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+        .ec-brand .ec-logo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #eae6e0; flex-shrink: 0; }
         .ec-brand .name { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: #1a1a1a; white-space: nowrap; }
         .ec-nav { display: flex; align-items: center; gap: 4px; min-width: 0; }
         .ec-nav a {
@@ -103,7 +103,7 @@ export function Header() {
 
       <div className="ec-hdr-left">
         <Link href="/dashboard" className="ec-brand">
-          <span className="dot" />
+          <img src="/logo.png" alt="Gym El Cuba" className="ec-logo" />
           <span className="name">Gym El Cuba</span>
         </Link>
         <nav className="ec-nav">

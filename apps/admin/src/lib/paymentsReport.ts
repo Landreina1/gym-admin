@@ -168,7 +168,7 @@ export async function exportPaymentsReport(rows: PaymentReportRow[]) {
 
   // ── Header ──
   try {
-    const img = await loadImage('/gym-cuba.jpg');
+    const img = await loadImage('/logo.png');
     const logo = imageToDataUrl(img);
     doc.addImage(logo, 'PNG', margin, 12, 18, 18);
   } catch {
