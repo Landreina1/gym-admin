@@ -24,7 +24,7 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [tab,             setTab]            = useState<'full' | 'partial'>('full');
-  const [cedula,          setCedula]         = useState('');
+  const [query,           setQuery]          = useState('');
   const [student,         setStudent]        = useState<Student | null>(null);
   const [pendingDecision, setPendingDecision] = useState<PendingDecision | null>(null);
   const [showDecision,    setShowDecision]   = useState(false);
@@ -45,16 +45,27 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
   });
   const allStudents = studentsData?.data ?? [];
 
-  useEffect(() => {
-    if (!cedula.trim()) { setStudent(null); setPendingDecision(null); setShowDecision(false); return; }
-    const match = allStudents.find(
-      (s) => (s as any).cedula?.toLowerCase() === cedula.trim().toLowerCase()
-    );
-    setStudent(match ?? null);
-    // Reset pending decision when student changes
+  const results = query.trim() && !student
+    ? allStudents.filter((s) => {
+        const q = query.trim().toLowerCase();
+        const name = `${s.firstName} ${s.lastName}`.toLowerCase();
+        const ced = String((s as any).cedula ?? '').toLowerCase();
+        return name.includes(q) || ced.includes(q);
+      }).slice(0, 8)
+    : [];
+
+  function selectStudent(s: Student) {
+    setStudent(s);
+    setQuery(`${s.firstName} ${s.lastName}`);
     setPendingDecision(null);
     setShowDecision(false);
-  }, [cedula, allStudents]);
+  }
+  function clearStudent() {
+    setStudent(null);
+    setQuery('');
+    setPendingDecision(null);
+    setShowDecision(false);
+  }
 
   useEffect(() => { setAmount(''); setError(''); }, [method, tab, student]);
   useEffect(() => { if (showBs && !bcvRate) fetchBcv(); }, [showBs]);
@@ -182,7 +193,7 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#121212' }}>Registrar pago</p>
-                <p style={{ margin: 0, fontSize: 11, color: '#6B7280' }}>Buscá al alumno por cédula</p>
+                <p style={{ margin: 0, fontSize: 11, color: '#6B7280' }}>Buscá al alumno por nombre o cédula</p>
               </div>
             </div>
             <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: '#f4f6f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280' }}>
@@ -192,20 +203,50 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
 
           <form onSubmit={handleSubmit} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
 
-            {/* Cédula */}
+            {/* Buscar alumno */}
             <div>
-              <label style={lbl}>Cédula del alumno *</label>
-              <div style={{ position: 'relative' }}>
-                <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: '#9CA3AF', pointerEvents: 'none' }} />
-                <input type="text" value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="V-12345678" className={inp} style={{ paddingLeft: 36 }} required />
-              </div>
-              {cedula && (
-                <div style={{ marginTop: 6 }}>
-                  <div style={{ padding: '8px 12px', borderRadius: 10, background: student ? '#f0fdf4' : '#fef2f2', border: `1px solid ${student ? '#bbf7d0' : '#fecaca'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <User style={{ width: 13, height: 13, color: student ? '#16a34a' : '#dc2626', flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: student ? '#15803d' : '#dc2626' }}>
-                      {student ? `${student.firstName} ${student.lastName} · ${student.plan?.name}${planPrice ? ` · $${planPrice} USD` : ''}` : 'Alumno no encontrado'}
-                    </span>
+              <label style={lbl}>Buscar alumno *</label>
+
+              {!student ? (
+                <>
+                  <div style={{ position: 'relative' }}>
+                    <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: '#9CA3AF', pointerEvents: 'none' }} />
+                    <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nombre o cédula…" className={inp} style={{ paddingLeft: 36 }} autoFocus />
+                  </div>
+                  {query.trim() && (
+                    <div style={{ marginTop: 6, border: '1px solid #eae6e0', borderRadius: 12, overflow: 'hidden', maxHeight: 220, overflowY: 'auto' }}>
+                      {results.length === 0 ? (
+                        <div style={{ padding: '12px 14px', fontSize: 12.5, color: '#a39a8e' }}>Sin resultados para “{query.trim()}”.</div>
+                      ) : results.map((s) => (
+                        <button key={s.id} type="button" onClick={() => selectStudent(s)}
+                          style={{ width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', borderBottom: '1px solid #f6f3ef', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = '#faf9f7')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}>
+                          <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: '#f0ece6', color: '#6b6258', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                            {`${s.firstName[0] ?? ''}${s.lastName[0] ?? ''}`.toUpperCase()}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.firstName} {s.lastName}</div>
+                            <div style={{ fontSize: 11, color: '#a39a8e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              CI {(s as any).cedula || '—'} · {s.plan?.name ?? 'Sin plan'}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ marginTop: 0 }}>
+                  <div style={{ padding: '10px 12px', borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <User style={{ width: 15, height: 15, color: '#16a34a', flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{student.firstName} {student.lastName}</div>
+                        <div style={{ fontSize: 11, color: '#16a34a' }}>CI {(student as any).cedula || '—'} · {student.plan?.name ?? 'Sin plan'}{planPrice ? ` · $${planPrice} USD` : ''}</div>
+                      </div>
+                    </div>
+                    <button type="button" onClick={clearStudent} style={{ fontSize: 11.5, color: '#16a34a', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>Cambiar</button>
                   </div>
                   {student && hasPending && (
                     <div style={{ marginTop: 5, padding: '7px 12px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
