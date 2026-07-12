@@ -13,7 +13,12 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.adminUser.findUnique({ where: { email: dto.email } });
+    const identifier = (dto.username ?? dto.email ?? '').trim();
+    if (!identifier) throw new UnauthorizedException('Credenciales inválidas');
+
+    const user = await this.prisma.adminUser.findFirst({
+      where: { OR: [{ username: identifier }, { email: identifier }] },
+    });
     if (!user || !user.isActive) throw new UnauthorizedException('Credenciales inválidas');
 
     const valid = await bcrypt.compare(dto.password, user.password);
@@ -22,13 +27,14 @@ export class AuthService {
     const token = this.jwt.sign({
       sub: user.id,
       email: user.email,
+      username: user.username,
       name: user.name,
       role: user.role,
     });
 
     return {
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      user: { id: user.id, email: user.email, username: user.username, name: user.name, role: user.role },
     };
   }
 

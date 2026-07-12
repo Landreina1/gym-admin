@@ -1,8 +1,14 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class LoginDto {
-  @IsEmail({}, { message: 'Email inválido' })
-  email: string;
+  // Identificador: nombre de usuario (o email como fallback de compatibilidad)
+  @IsString()
+  @IsOptional()
+  username?: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
 
   @IsString()
   password: string;
