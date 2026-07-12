@@ -25,8 +25,8 @@ export default function StudentsPage() {
       const res = await studentsService.getAll({ search, status, planId, limit: 9999 });
       const n = new Date();
       const dateStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-      exportPdf({
-        title: 'Registro General de Alumnos',
+      await exportPdf({
+        title: 'Listado de Alumnos',
         filename: `Alumnos_Gym_El_Cuba_${dateStr}.pdf`,
         headers: ['Nombre', 'Apellido', 'Cédula', 'Email', 'Teléfono', 'Plan', 'Mensualidad', 'Estado', 'Día cobro', 'Ingreso'],
         rows: res.data.map((s) => [
