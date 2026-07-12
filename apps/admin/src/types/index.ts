@@ -115,7 +115,14 @@ export interface DashboardStats {
     overdue: number;
   };
   dueSoon: Student[];
-  recentWeightChanges: (WeightRecord & { student: Pick<Student, 'firstName' | 'lastName'> })[];
+  recentPayments: {
+    id: string;
+    amount: number | string;
+    paidAt: string;
+    paymentMethod: string | null;
+    paymentType?: string | null;
+    student: Pick<Student, 'firstName' | 'lastName'>;
+  }[];
 }
 
 export interface PaginatedResponse<T> {

@@ -24,7 +24,7 @@ export class DashboardService {
       activeStudents,
       inactiveStudents,
       overdueCount,
-      recentWeights,
+      recentPayments,
       dueSoonRaw,
       overdueRaw,
     ] = await Promise.all([
@@ -32,10 +32,19 @@ export class DashboardService {
       this.prisma.student.count({ where: { status: 'ACTIVE' } }),
       this.prisma.student.count({ where: { status: 'INACTIVE' } }),
       this.prisma.student.count({ where: overdueWhere }),
-      this.prisma.weightRecord.findMany({
-        orderBy: { recordedAt: 'desc' },
-        take: 20,
-        include: { student: { select: { firstName: true, lastName: true } } },
+      // Historial global de pagos recientes
+      this.prisma.payment.findMany({
+        where: { amount: { gt: 0 } },
+        orderBy: { paidAt: 'desc' },
+        take: 12,
+        select: {
+          id: true,
+          amount: true,
+          paidAt: true,
+          paymentMethod: true,
+          paymentType: true,
+          student: { select: { firstName: true, lastName: true } },
+        },
       }),
       // DUE_SOON: period ending in next 3 days
       this.prisma.student.findMany({
@@ -90,7 +99,7 @@ export class DashboardService {
         overdue: overdueCount,
       },
       dueSoon,
-      recentWeightChanges: recentWeights,
+      recentPayments,
     };
   }
 }

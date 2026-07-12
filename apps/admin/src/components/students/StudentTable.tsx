@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
-  ArrowUp, ArrowDown, Minus, MoreVertical,
-  Eye, Pencil, Scale, CreditCard, ChevronRight,
+  MoreVertical,
+  Eye, Pencil, CreditCard, ChevronRight,
   Trash2, UserX, UserCheck,
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,46 +13,15 @@ import type { Student } from '@/types';
 import { formatDate, cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
-import { weightService } from '@/services/weight.service';
 import { studentsService } from '@/services/students.service';
 import { PaymentFlowModal } from '@/components/payments/PaymentFlowModal';
 
-const inputClass =
-  'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
-
-/* ─── Weight delta ────────────────────────────────────────── */
-function WeightBadge({ diff, goal }: { diff: number; goal: string }) {
-  const isDown = diff < 0;
-  const isUp = diff > 0;
-  const isGood = (goal === 'LOSE_WEIGHT' && isDown) || (goal === 'GAIN_WEIGHT' && isUp) || (goal === 'MAINTAIN' && !isDown && !isUp);
-  const isBad  = (goal === 'LOSE_WEIGHT' && isUp)   || (goal === 'GAIN_WEIGHT' && isDown);
-  return (
-    <span className={cn('flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full',
-      isGood ? 'bg-green-50 text-green-600' : isBad ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400',
-    )}>
-      {isDown ? <ArrowDown className="w-3 h-3" /> : isUp ? <ArrowUp className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-      {Math.abs(diff)}
-    </span>
-  );
-}
-
-function WeightCell({ records, goal }: { records?: { weight: number; recordedAt: string }[]; goal: string }) {
-  if (!records || records.length === 0) return <span className="text-gray-300 text-sm">—</span>;
-  const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
-  const current = sorted[sorted.length - 1];
-  const prev    = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
-  const diff    = prev ? +(current.weight - prev.weight).toFixed(1) : null;
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-sm font-semibold text-gray-800">{current.weight} kg</span>
-      {diff !== null && <WeightBadge diff={diff} goal={goal} />}
-    </div>
-  );
-}
+// NOTA: la funcionalidad de "peso" (columnas, registro y gráficos) quedó
+// oculta a pedido. El código de peso se puede restaurar desde el historial de git.
 
 /* ─── Desktop action dropdown (portal) ───────────────────── */
-function ActionDropdown({ student, onWeight, onPayment, onDelete, onSuspend }: {
-  student: Student; onWeight: () => void; onPayment: () => void;
+function ActionDropdown({ student, onPayment, onDelete, onSuspend }: {
+  student: Student; onPayment: () => void;
   onDelete: () => void; onSuspend: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -91,9 +60,6 @@ function ActionDropdown({ student, onWeight, onPayment, onDelete, onSuspend }: {
         <Pencil className="w-4 h-4 text-gray-400" /> Editar alumno
       </Link>
       <div className="border-t border-gray-100 my-1" />
-      <button onClick={() => { setOpen(false); onWeight(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-700 hover:bg-gray-50">
-        <Scale className="w-4 h-4 text-gray-400" /> Registrar peso
-      </button>
       <button onClick={() => { setOpen(false); onPayment(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-brand-600 hover:bg-brand-50 font-medium">
         <CreditCard className="w-4 h-4" /> Registrar pago
       </button>
@@ -120,12 +86,10 @@ function ActionDropdown({ student, onWeight, onPayment, onDelete, onSuspend }: {
 }
 
 /* ─── Mobile student card ─────────────────────────────────── */
-function StudentCard({ student, onWeight, onPayment, onDelete, onSuspend }: {
-  student: Student; onWeight: () => void; onPayment: () => void;
+function StudentCard({ student, onPayment, onDelete, onSuspend }: {
+  student: Student; onPayment: () => void;
   onDelete: () => void; onSuspend: () => void;
 }) {
-  const records = student.weightRecords ?? [];
-  const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
   const initials = `${student.firstName[0]}${student.lastName[0]}`.toUpperCase();
 
   return (
@@ -174,12 +138,8 @@ function StudentCard({ student, onWeight, onPayment, onDelete, onSuspend }: {
         )}
       </div>
 
-      {/* Weight + due date row */}
-      <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-50 pt-2.5">
-        <div className="flex items-center gap-1">
-          <Scale className="w-3.5 h-3.5 text-gray-400" />
-          <WeightCell records={sorted} goal={student.goal} />
-        </div>
+      {/* Due date row */}
+      <div className="flex items-center justify-end text-xs text-gray-500 border-t border-gray-50 pt-2.5">
         <div className="flex items-center gap-1">
           <span className="text-gray-400">Vence:</span>
           <span className="font-medium text-gray-700">{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span>
@@ -222,24 +182,10 @@ function StudentCard({ student, onWeight, onPayment, onDelete, onSuspend }: {
 /* ─── Main ────────────────────────────────────────────────── */
 export function StudentTable({ students, isLoading }: { students: Student[]; isLoading: boolean }) {
   const queryClient = useQueryClient();
-  const today = new Date().toISOString().slice(0, 10);
 
-  const [weightStudent, setWeightStudent] = useState<Student | null>(null);
   const [paymentStudent, setPaymentStudent] = useState<Student | null>(null);
   const [deleteStudent, setDeleteStudent] = useState<Student | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [weightForm, setWeightForm] = useState({ weight: '', recordedAt: today, notes: '' });
-
-  const weightMutation = useMutation({
-    mutationFn: () => weightService.create({ studentId: weightStudent!.id, weight: Number(weightForm.weight), recordedAt: weightForm.recordedAt, notes: weightForm.notes || undefined }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['students'] });
-      setWeightStudent(null);
-      setWeightForm({ weight: '', recordedAt: today, notes: '' });
-      setToast({ message: 'Peso registrado correctamente', type: 'success' });
-    },
-    onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
-  });
 
   const deleteMutation = useMutation({
     mutationFn: () => studentsService.delete(deleteStudent!.id),
@@ -261,7 +207,6 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
     onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
   });
 
-  function openWeight(s: Student) { setWeightForm({ weight: '', recordedAt: today, notes: '' }); setWeightStudent(s); }
   function openPayment(s: Student) { setPaymentStudent(s); }
   function handleSuspend(s: Student) { suspendMutation.mutate({ id: s.id, newStatus: s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' }); }
 
@@ -319,28 +264,6 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
         </div>
       </Modal>
 
-      {/* ── Weight modal ── */}
-      <Modal isOpen={!!weightStudent} onClose={() => setWeightStudent(null)} title={`Registrar peso — ${weightStudent?.firstName} ${weightStudent?.lastName}`}>
-        <form onSubmit={(e) => { e.preventDefault(); weightMutation.mutate(); }} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Peso (kg) *</label>
-            <input type="number" step="0.1" required autoFocus value={weightForm.weight} onChange={(e) => setWeightForm((f) => ({ ...f, weight: e.target.value }))} className={inputClass} placeholder="Ej: 72.5" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Fecha *</label>
-            <input type="date" lang="es" required value={weightForm.recordedAt} onChange={(e) => setWeightForm((f) => ({ ...f, recordedAt: e.target.value }))} className={inputClass} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Notas</label>
-            <input type="text" value={weightForm.notes} onChange={(e) => setWeightForm((f) => ({ ...f, notes: e.target.value }))} className={inputClass} placeholder="Opcional" />
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={() => setWeightStudent(null)} className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
-            <button type="submit" disabled={weightMutation.isPending} className="flex-1 px-4 py-3 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50">{weightMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-          </div>
-        </form>
-      </Modal>
-
       <PaymentFlowModal
         student={paymentStudent}
         onClose={() => setPaymentStudent(null)}
@@ -353,7 +276,6 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
           <StudentCard
             key={s.id}
             student={s}
-            onWeight={() => openWeight(s)}
             onPayment={() => openPayment(s)}
             onDelete={() => setDeleteStudent(s)}
             onSuspend={() => handleSuspend(s)}
@@ -364,19 +286,16 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
       {/* ── Desktop: table ── */}
       <div className="hidden md:block" style={{ background: '#fff', border: '1px solid #eae6e0', borderRadius: 22, overflow: 'hidden', boxShadow: '0 2px 10px rgba(26,26,26,0.03)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]" style={{ borderCollapse: 'collapse' }}>
+          <table className="w-full min-w-[640px]" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#fcfbf9', borderBottom: '1px solid #f0ece6' }}>
-                {['Alumno', 'Plan', 'Peso inicial', 'Peso anterior', 'Peso actual', 'Estado', 'Pago', 'Vencimiento', ''].map((h) => (
+                {['Alumno', 'Plan', 'Estado', 'Pago', 'Vencimiento', ''].map((h) => (
                   <th key={h} style={{ padding: '16px 20px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a39a8e', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {students.map((student) => {
-                const records = student.weightRecords ?? [];
-                const sorted = [...records].sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime());
-                const prev = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
                 const initials = `${student.firstName[0] ?? ''}${student.lastName[0] ?? ''}`.toUpperCase();
                 const mora = student.isOverdue && student.paymentStatus !== 'PARTIAL';
                 return (
@@ -394,9 +313,6 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
                       </Link>
                     </td>
                     <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, color: '#6b6258' }}>{student.plan?.name ?? '—'}</span></td>
-                    <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, color: '#a39a8e' }}>{student.initialWeight ? `${student.initialWeight} kg` : '—'}</span></td>
-                    <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, color: '#a39a8e' }}>{prev ? `${prev.weight} kg` : '—'}</span></td>
-                    <td style={{ padding: '15px 20px' }}><WeightCell records={sorted} goal={student.goal} /></td>
                     <td style={{ padding: '15px 20px' }}>
                       <span className="ec-badge" style={{ background: student.status === 'ACTIVE' ? '#e9f6ee' : '#f0ece6', color: student.status === 'ACTIVE' ? '#16a34a' : '#6b6258' }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: student.status === 'ACTIVE' ? '#16a34a' : '#a39a8e' }} />
@@ -418,7 +334,7 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
                     </td>
                     <td style={{ padding: '15px 20px' }}><span style={{ fontSize: 13.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: mora ? '#E53935' : '#6b6258' }}>{student.nextDueDate ? formatDate(student.nextDueDate) : '—'}</span></td>
                     <td style={{ padding: '15px 12px' }}>
-                      <ActionDropdown student={student} onWeight={() => openWeight(student)} onPayment={() => openPayment(student)} onDelete={() => setDeleteStudent(student)} onSuspend={() => handleSuspend(student)} />
+                      <ActionDropdown student={student} onPayment={() => openPayment(student)} onDelete={() => setDeleteStudent(student)} onSuspend={() => handleSuspend(student)} />
                     </td>
                   </tr>
                 );

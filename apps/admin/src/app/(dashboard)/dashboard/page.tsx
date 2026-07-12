@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
   if (isLoading || !data) return <PageSkeleton />;
 
-  const { totals, dueSoon, recentWeightChanges } = data;
+  const { totals, dueSoon, recentPayments } = data;
 
   const now = new Date();
   const dateLabel = `${DAYS[now.getDay()]} ${now.getDate()} de ${MONTHS_LONG[now.getMonth()]}`;
@@ -275,21 +275,27 @@ export default function DashboardPage() {
           </Card>
 
           <Card style={{ padding: 26, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>Actividad reciente</div>
-            {recentWeightChanges.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#a39a8e' }}>Sin actividad todavía</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Pagos recientes</div>
+              <Link href="/payments" style={{ fontSize: 13, fontWeight: 600, color: '#E53935' }}>Ver todos →</Link>
+            </div>
+            {recentPayments.length === 0 ? (
+              <div style={{ fontSize: 13, color: '#a39a8e' }}>Sin pagos registrados todavía</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {recentWeightChanges.slice(0, 5).map((r) => (
-                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: '#f0ece6', color: '#6b6258', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
-                      {r.student.firstName[0]}{r.student.lastName[0]}
+                {recentPayments.slice(0, 6).map((p) => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: '#e9f6ee', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                      {p.student.firstName[0]}{p.student.lastName[0]}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.student.firstName} {r.student.lastName}</p>
-                      <p style={{ margin: 0, fontSize: 12, color: '#a39a8e' }}>Peso → <strong style={{ color: '#6b6258' }}>{r.weight} kg</strong></p>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.student.firstName} {p.student.lastName}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: '#a39a8e' }}>{p.paymentMethod ?? 'Pago'}{p.paymentType === 'PARTIAL' ? ' · parcial' : ''}</p>
                     </div>
-                    <span style={{ fontSize: 11, color: '#c4bcb0', flexShrink: 0 }}>{timeAgo(r.recordedAt)}</span>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', fontVariantNumeric: 'tabular-nums' }}>{formatCurrency(Number(p.amount))}</div>
+                      <div style={{ fontSize: 10.5, color: '#c4bcb0' }}>{timeAgo(p.paidAt)}</div>
+                    </div>
                   </div>
                 ))}
               </div>
