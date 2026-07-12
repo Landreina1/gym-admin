@@ -5,6 +5,7 @@
     "dev": "nest start --watch",
     "build": "prisma generate --schema=./prisma/schema.prisma && nest build",
     "db:push": "prisma db push --schema=./prisma/schema.prisma --accept-data-loss",
+    "backup": "node prisma/backup.js",
     "start": "node dist/main",
     "lint": "eslint src --ext .ts"
   },

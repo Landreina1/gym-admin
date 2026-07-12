@@ -39,5 +39,8 @@ desktop.ini
 # ── Testing ───────────────────────────────
 coverage/
 
+# ── Respaldos (datos personales — NO subir al repo) ──
+backups/
+
 # ── Misc ──────────────────────────────────
 *.tsbuildinfo
