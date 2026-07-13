@@ -36,6 +36,11 @@ export class CreateStudentDto {
   @IsOptional()
   phone?: string;
 
+  @ApiPropertyOptional({ description: 'Foto del alumno (data URL base64)' })
+  @IsString()
+  @IsOptional()
+  photoUrl?: string;
+
   @ApiPropertyOptional()
   @IsDateString()
   @IsOptional()

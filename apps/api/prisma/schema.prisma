@@ -54,6 +54,7 @@ model Student {
   cedula         String?
   email          String?        @unique
   phone          String?
+  photoUrl       String?        // foto del alumno (data URL / base64)
   birthDate      DateTime?
   joinDate       DateTime       @default(now())
   billingDay     Int            // 1-31: día del mes en que se cobra

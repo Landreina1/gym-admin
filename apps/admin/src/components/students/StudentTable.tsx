@@ -97,9 +97,9 @@ function StudentCard({ student, onPayment, onDelete, onSuspend }: {
       {/* Top row */}
       <div className="flex items-start justify-between gap-3">
         <Link href={`/students/${student.id}`} className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
             style={{ background: student.isOverdue ? '#fdeeed' : '#f0ece6', color: student.isOverdue ? '#E53935' : '#6b6258' }}>
-            {initials}
+            {student.photoUrl ? <img src={student.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-gray-900 truncate">{student.firstName} {student.lastName}</p>
@@ -305,7 +305,9 @@ export function StudentTable({ students, isLoading }: { students: Student[]; isL
                   >
                     <td style={{ padding: '15px 20px' }}>
                       <Link href={`/students/${student.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, textDecoration: 'none' }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 800, background: mora ? '#fdeeed' : '#f0ece6', color: mora ? '#E53935' : '#6b6258' }}>{initials}</div>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 800, background: mora ? '#fdeeed' : '#f0ece6', color: mora ? '#E53935' : '#6b6258' }}>
+                          {student.photoUrl ? <img src={student.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+                        </div>
                         <div style={{ minWidth: 0 }}>
                           <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.2 }}>{student.firstName} {student.lastName}</p>
                           {student.email && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#a39a8e' }}>{student.email}</p>}

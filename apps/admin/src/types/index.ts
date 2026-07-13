@@ -21,6 +21,7 @@ export interface Student {
   cedula?: string;
   email?: string;
   phone?: string;
+  photoUrl?: string | null;
   birthDate?: string;
   joinDate: string;
   billingDay: number;

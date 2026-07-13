@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { User, CreditCard, CheckCircle2, Info, DollarSign } from 'lucide-react';
@@ -18,6 +18,29 @@ const INPUT = [
 ].join(' ');
 
 const SELECT = INPUT + ' appearance-none cursor-pointer pr-10';
+
+// Recorta la imagen a un cuadrado y la comprime a JPEG (data URL liviano)
+function fileToSquareDataUrl(file: File, size = 256, quality = 0.78): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d')!;
+        const min = Math.min(img.width, img.height);
+        const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
@@ -85,6 +108,7 @@ export function StudentForm({ student }: StudentFormProps) {
     cedula:        (student as any)?.cedula ?? '',
     email:         student?.email ?? '',
     phone:         student?.phone ?? '',
+    photoUrl:      (student as any)?.photoUrl ?? '',
     birthDate:     student?.birthDate ? student.birthDate.slice(0, 10) : '',
     joinDate:      student?.joinDate ? student.joinDate.slice(0, 10) : localToday(),
     billingDay:    student?.billingDay ?? 1,
@@ -112,6 +136,22 @@ export function StudentForm({ student }: StudentFormProps) {
   const set = (field: string, value: string | number | boolean) =>
     setForm((f) => ({ ...f, [field]: value }));
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [photoErr, setPhotoErr] = useState('');
+  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('image/')) { setPhotoErr('El archivo debe ser una imagen'); return; }
+    try {
+      const dataUrl = await fileToSquareDataUrl(f);
+      set('photoUrl', dataUrl);
+      setPhotoErr('');
+    } catch {
+      setPhotoErr('No se pudo procesar la imagen');
+    }
+  }
+
   const mutation = useMutation({
     mutationFn: () => {
       const payload = {
@@ -120,6 +160,7 @@ export function StudentForm({ student }: StudentFormProps) {
         cedula:        form.cedula,
         email:         form.email      || undefined,
         phone:         form.phone      || undefined,
+        photoUrl:      form.photoUrl ?? '',
         birthDate:     form.birthDate  || undefined,
         joinDate:      form.joinDate   || undefined,
         billingDay:    Number(form.billingDay),
@@ -163,6 +204,32 @@ export function StudentForm({ student }: StudentFormProps) {
 
             {/* DATOS PERSONALES */}
             <Card icon={<User style={{ width: 16, height: 16, color: '#EF4444' }} />} title="Datos Personales">
+              {/* Foto del alumno */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid #f6f3ef' }}>
+                <div style={{ width: 72, height: 72, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: '#f0ece6', border: '1px solid #eae6e0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {form.photoUrl
+                    ? <img src={form.photoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ fontSize: 22, fontWeight: 800, color: '#a39a8e' }}>{`${form.firstName[0] ?? ''}${form.lastName[0] ?? ''}`.toUpperCase() || '?'}</span>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" onClick={() => fileRef.current?.click()}
+                      style={{ height: 38, padding: '0 16px', borderRadius: 99, border: '1px solid #e2dcd4', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>
+                      {form.photoUrl ? 'Cambiar foto' : 'Subir foto'}
+                    </button>
+                    {form.photoUrl && (
+                      <button type="button" onClick={() => set('photoUrl', '')}
+                        style={{ height: 38, padding: '0 14px', borderRadius: 99, border: '1px solid #f3ddda', background: '#fff', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: '#c2554f' }}>
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 11, color: '#a39a8e', margin: 0 }}>Opcional. Ayuda a identificar al alumno en la lista.</p>
+                  {photoErr && <p style={{ fontSize: 11, color: '#dc2626', margin: 0 }}>{photoErr}</p>}
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
+              </div>
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label required>Nombre</Label>

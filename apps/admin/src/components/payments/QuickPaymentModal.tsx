@@ -222,8 +222,8 @@ export function QuickPaymentModal({ onClose, onSuccess }: Props) {
                           style={{ width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', borderBottom: '1px solid #f6f3ef', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = '#faf9f7')}
                           onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}>
-                          <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, background: '#f0ece6', color: '#6b6258', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
-                            {`${s.firstName[0] ?? ''}${s.lastName[0] ?? ''}`.toUpperCase()}
+                          <div style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, overflow: 'hidden', background: '#f0ece6', color: '#6b6258', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                            {(s as any).photoUrl ? <img src={(s as any).photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : `${s.firstName[0] ?? ''}${s.lastName[0] ?? ''}`.toUpperCase()}
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.firstName} {s.lastName}</div>
