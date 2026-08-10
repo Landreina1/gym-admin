@@ -21,16 +21,37 @@ export default function LoginPage() {
     if (!canSubmit || loading || success) return;
     setError('');
     setLoading(true);
-    try {
-      const { data } = await api.post('/auth/login', { username: username.trim(), password });
-      localStorage.setItem('gym_token', data.token);
-      localStorage.setItem('gym_user', JSON.stringify(data.user));
-      document.cookie = `gym_token=${data.token}; path=/; max-age=${10 * 365 * 24 * 3600}; SameSite=Strict`;
-      setSuccess(true);
-      setTimeout(() => router.push('/dashboard'), 1000);
-    } catch {
-      setError('Usuario o contraseña incorrectos');
-      setLoading(false);
+
+    const secure = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : '';
+    const maxAttempts = 5;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const { data } = await api.post('/auth/login', { username: username.trim(), password });
+        localStorage.setItem('gym_token', data.token);
+        localStorage.setItem('gym_user', JSON.stringify(data.user));
+        // SameSite=Lax (no Strict): mantiene la sesión al navegar/volver atrás
+        document.cookie = `gym_token=${data.token}; path=/; max-age=${10 * 365 * 24 * 3600}; SameSite=Lax${secure}`;
+        setSuccess(true);
+        setTimeout(() => router.push('/dashboard'), 1000);
+        return;
+      } catch (err: any) {
+        const status = err?.response?.status;
+        // Credenciales realmente incorrectas → mensaje claro, sin reintentar
+        if (status === 401 || status === 400) {
+          setError('Usuario o contraseña incorrectos');
+          setLoading(false);
+          return;
+        }
+        // Servidor frío/red (Render se suspende por inactividad) → reintentar
+        if (attempt < maxAttempts) {
+          setError('Conectando con el servidor…');
+          await new Promise((r) => setTimeout(r, 3000));
+          continue;
+        }
+        setError('No pudimos conectar con el servidor (puede estar iniciando). Esperá unos segundos e intentá de nuevo.');
+        setLoading(false);
+      }
     }
   }
 
