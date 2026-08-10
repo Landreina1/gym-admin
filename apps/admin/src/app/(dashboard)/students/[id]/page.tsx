@@ -143,7 +143,7 @@ export default function StudentDetailPage() {
         {/* ── 1. Header ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors flex-shrink-0">
+            <button onClick={() => router.push('/students')} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors flex-shrink-0">
               <ArrowLeft className="w-4 h-4" />
             </button>
             <div className="w-11 h-11 sm:w-[54px] sm:h-[54px]" style={{ borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, background: student.isOverdue ? '#fdeeed' : '#f0ece6', color: student.isOverdue ? '#E53935' : '#6b6258' }}>

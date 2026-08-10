@@ -179,7 +179,11 @@ export function StudentForm({ student }: StudentFormProps) {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       if (isEditing) queryClient.invalidateQueries({ queryKey: ['student', student.id] });
       setToast({ message: isEditing ? 'Alumno actualizado correctamente' : 'Alumno creado correctamente', type: 'success' });
-      setTimeout(() => router.push(isEditing ? `/students/${student.id}` : '/students'), 1200);
+      // replace (no push) para que la pantalla de Editar no quede en el historial
+      setTimeout(() => {
+        if (isEditing) router.replace(`/students/${student.id}`);
+        else router.push('/students');
+      }, 1200);
     },
     onError: (err: Error) => setToast({ message: err.message, type: 'error' }),
   });
