@@ -142,34 +142,48 @@ export default function StudentDetailPage() {
 
         {/* ── 1. Header ── */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-5">
-          <div className="flex items-start gap-3">
-            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors flex-shrink-0 mt-0.5">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors flex-shrink-0">
               <ArrowLeft className="w-4 h-4" />
             </button>
+            <div className="w-11 h-11 sm:w-[54px] sm:h-[54px]" style={{ borderRadius: '50%', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, background: student.isOverdue ? '#fdeeed' : '#f0ece6', color: student.isOverdue ? '#E53935' : '#6b6258' }}>
+              {(student as any).photoUrl
+                ? <img src={(student as any).photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : `${student.firstName[0] ?? ''}${student.lastName[0] ?? ''}`.toUpperCase()}
+            </div>
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-xl font-bold text-gray-900">{student.firstName} {student.lastName}</h1>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-0.5">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{student.firstName} {student.lastName}</h1>
                 <StatusBadge status={student.paymentStatus} isOverdue={student.isOverdue} />
               </div>
-              <p className="text-sm text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-400">
                 {student.plan?.name} · Cobro día {student.billingDay}
                 {(student as any).cedula && <> · {(student as any).cedula}</>}
               </p>
             </div>
-            {/* Actions */}
-            <div className="flex gap-2 flex-shrink-0">
+            {/* Desktop actions */}
+            <div className="hidden sm:flex gap-2 flex-shrink-0">
               <Link href={`/students/${id}/edit`}
                 className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                <Pencil className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Editar</span>
+                <Pencil className="w-3.5 h-3.5" /> Editar
               </Link>
               <button onClick={() => setPaymentModal(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors">
-                <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Registrar pago</span>
-                <span className="sm:hidden">Pago</span>
+                <Plus className="w-3.5 h-3.5" /> Registrar pago
               </button>
             </div>
+          </div>
+
+          {/* Mobile actions */}
+          <div className="flex sm:hidden gap-2 mt-3">
+            <Link href={`/students/${id}/edit`}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 active:bg-gray-100 transition-colors">
+              <Pencil className="w-3.5 h-3.5" /> Editar
+            </Link>
+            <button onClick={() => setPaymentModal(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-medium active:bg-brand-800 transition-colors">
+              <Plus className="w-3.5 h-3.5" /> Registrar pago
+            </button>
           </div>
         </div>
 
